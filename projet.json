@@ -1,7 +1,7 @@
 {
-  "nom": "Nom du projet",
-  "pitch": "Une phrase qui dit ce que fait le projet.",
-  "description": "Premier paragraphe : le problème que vous résolvez.\n\nDeuxième paragraphe : comment ça marche, et ce que vous avez construit en trois jours.",
+  "nom": "InstaJob",
+  "pitch": "Une appli ludique pour orienter les jeunes en fonction de leurs aptitudes et intérêts",
+  "description": "En arrivant dans le centre des possibles, certains jeunes n'ont aucune idée de ce vers quoi ils veulent s'orienter. Il faut créer un outil de suivi qui leur proposera des perspectives d'avenir à partir de leurs intérêts et des résultats des entretiens passés au centre.\n\nDeuxième paragraphe : comment ça marche, et ce que vous avez construit en trois jours.",
   "ecoles": ["Epitech", "Centrale"],
   "stack": ["HTML", "JavaScript"],
   "demo": "",
