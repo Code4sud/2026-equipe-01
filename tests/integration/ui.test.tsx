@@ -35,6 +35,13 @@ describe('Landing et authentification', () => {
     expect(screen.queryByText(/Une IA qui traduit/)).toBeNull();
   });
 
+  it('le pied de page crédite les 6 membres de l’équipe 01', () => {
+    renderAt('/');
+    const team = screen.getByTestId('team');
+    for (const name of ['Adam', 'Chris', 'Leila', 'Lucka', 'Malone', 'Nathan']) expect(team).toHaveTextContent(name);
+    expect(within(team).getAllByRole('listitem')).toHaveLength(6);
+  });
+
   it('comptes de démo scindés : 5 jeunes et un accès pro séparé', async () => {
     renderAt('/');
     await userEvent.click(screen.getByTestId('cta-youth'));

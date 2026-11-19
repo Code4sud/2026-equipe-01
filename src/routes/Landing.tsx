@@ -15,6 +15,9 @@ const MARQUEE = [
   'UNE ÉTOILE POUR GUIDER',
 ];
 
+/** Membres de l'équipe 01 (prénoms uniquement). */
+const TEAM = ['Adam', 'Chris', 'Leila', 'Lucka', 'Malone', 'Nathan'] as const;
+
 const DEMO_PROFILE = SEED_PROFILES.find((p) => p.id === 'noah') ?? SEED_PROFILES[0]!;
 
 function Constellation() {
@@ -319,6 +322,14 @@ export function Landing() {
             <a href="https://code4sud.fr" rel="noopener noreferrer" target="_blank">code4sud.fr</a>
             <a href="https://github.com/Code4sud/2026-equipe-01" rel="noopener noreferrer" target="_blank">Code source</a>
           </nav>
+          <div data-testid="team">
+            <p className="footer__title">L’équipe 01</p>
+            <ul className="footer__team">
+              {TEAM.map((name) => (
+                <li key={name}>{name}</li>
+              ))}
+            </ul>
+          </div>
         </div>
         <p className="band__inner small footer__muted">
           Démo de hackathon : personnages, citations et profils sont fictifs.
