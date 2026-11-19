@@ -12,18 +12,53 @@ export type RiasecKey = (typeof RIASEC_KEYS)[number];
 /** 1: 0-6 mois | 2: 3 mois-2 ans | 3: 1-4 ans | 4: 2-6 ans | 5: 4-10 ans */
 export type JobZone = 1 | 2 | 3 | 4 | 5;
 
+/** Métadonnées d'un PDF importé (le contenu du fichier n'est jamais lu ni stocké). */
+export interface DocumentMeta {
+  id: string;
+  name: string;
+  /** Taille en octets. */
+  size: number;
+  /** Date d'import au format AAAA-MM-JJ. */
+  date: string;
+}
+
 export interface YouthProfile {
   id: string;
   role: 'jeune';
   name: string;
   age: number;
   rdvRef: string;
+  /**
+   * true : les scores RIASEC viennent d'un bilan au Centre des Possibles.
+   * false : estimation à partir des centres d'intérêt choisis à l'inscription.
+   */
+  hasBilan: boolean;
   riasec: Record<RiasecKey, number>;
   topCognitive: string[];
   topPersonality: string[];
   tagScores: Record<string, number>;
   starredVideoIds: string[];
   watchedVideoIds: string[];
+  documents: DocumentMeta[];
+}
+
+export type Role = 'jeune' | 'pro';
+
+/**
+ * Compte de DÉMONSTRATION. Les mots de passe sont factices et publics (affichés
+ * dans l'encart « Comptes de démo ») : ce n'est pas une authentification réelle.
+ */
+export interface Account {
+  id: string;
+  email: string;
+  password: string;
+  role: Role;
+  displayName: string;
+}
+
+export interface Session {
+  accountId: string;
+  role: Role;
 }
 
 export interface ReelVideo {

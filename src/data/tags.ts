@@ -3,12 +3,13 @@ import type { RiasecKey } from '../domain/types';
 /**
  * Catalogue fermé des tags d'intérêts. Le pro ne peut choisir que dans cette
  * liste (pas de saisie libre, conformité RGPD) et chaque tag est relié aux
- * dimensions RIASEC qu'il illustre (utilisé par la vidéo d'exploration).
+ * dimensions RIASEC qu'il illustre (vidéo d'exploration, radar dynamique,
+ * estimation à l'inscription).
  */
 export const TAG_RIASEC = {
   'Plein air & Nature': ['Réaliste', 'Investigateur'],
   'Manuel & Terrain': ['Réaliste'],
-  'Soin & Sport': ['Social', 'Réaliste'],
+  'Technique & Énergie': ['Réaliste', 'Investigateur'],
   Logistique: ['Conventionnel', 'Réaliste'],
   'Événementiel & Contact': ['Entreprenant', 'Social'],
   'Commerce & Gestion': ['Entreprenant', 'Conventionnel'],
@@ -16,8 +17,13 @@ export const TAG_RIASEC = {
   Finance: ['Conventionnel', 'Entreprenant'],
   'Son & Média': ['Artistique', 'Réaliste'],
   'Créatif & Scène': ['Artistique', 'Social'],
+  'Design & Image': ['Artistique', 'Investigateur'],
+  'Tech & Numérique': ['Investigateur', 'Conventionnel'],
+  'Sciences & Analyse': ['Investigateur'],
+  Logique: ['Investigateur', 'Conventionnel'],
+  'Soin & Santé': ['Social', 'Investigateur'],
   'Sport & Coaching': ['Social', 'Réaliste'],
-  'Technique & Énergie': ['Réaliste', 'Investigateur'],
+  Accompagnement: ['Social'],
 } as const satisfies Record<string, readonly RiasecKey[]>;
 
 export type TagName = keyof typeof TAG_RIASEC;
