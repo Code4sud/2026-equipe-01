@@ -65,6 +65,8 @@ export interface ReelVideo {
   id: string;
   title: string;
   category: 'Métier' | 'École' | 'Témoignage';
+  /** Code O*NET-SOC du référentiel (fiches « Métier »). */
+  onetCode?: string;
   zone: JobZone;
   zoneLabel: string;
   tags: string[];
