@@ -4,7 +4,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { ArrowLeft, Sparkles } from 'lucide-react';
 import { Feed } from '../components/Feed';
 import { Bilan } from '../components/Bilan';
-import { DebriefStory } from '../components/DebriefStory';
+import { ReelStory } from '../components/ReelStory';
 import { AuthModal } from '../components/AuthModal';
 import { DetailsScreen } from '../components/DetailsScreen';
 import { ProfileScreen } from '../components/ProfileScreen';
@@ -136,7 +136,7 @@ export function YouthApp() {
           )}
         </AnimatePresence>
 
-        {story && <DebriefStory profile={profile} onClose={() => setStory(false)} />}
+        {story && <ReelStory profile={profile} onClose={() => setStory(false)} />}
         <Toast toast={toast} />
       </div>
 

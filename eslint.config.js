@@ -34,4 +34,14 @@ export default tseslint.config(
       'security/detect-non-literal-regexp': 'off',
     },
   },
+  {
+    // Script d'import O*NET (outil de développement, exécuté à la main sur un fichier du dépôt).
+    files: ['scripts/**/*.mjs'],
+    languageOptions: { globals: globals.node },
+    rules: {
+      'security/detect-object-injection': 'off',
+      'security/detect-non-literal-fs-filename': 'off',
+      'security/detect-non-literal-regexp': 'off',
+    },
+  },
 );

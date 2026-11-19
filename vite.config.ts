@@ -7,14 +7,25 @@ import react from '@vitejs/plugin-react';
  * Vite a besoin de scripts inline pour le rechargement à chaud).
  * - script-src : notre bundle + le bandeau obligatoire Code4Sud.
  * - style-src 'unsafe-inline' : requis par le bandeau (attributs style) et Framer Motion.
+ * - 'wasm-unsafe-eval' + connect-src Hugging Face / GitHub : IA locale WebLLM
+ *   (compilation WebAssembly du modèle et téléchargement de ses poids publics).
+ *   Aucun script distant en plus, et aucune donnée du jeune n'est envoyée.
  */
+export const LLM_HOSTS = [
+  'https://huggingface.co',
+  'https://*.huggingface.co',
+  'https://*.hf.co',
+  'https://raw.githubusercontent.com',
+] as const;
+
 export const CSP = [
   "default-src 'self'",
-  "script-src 'self' https://orientation.code4sud.fr",
+  "script-src 'self' 'wasm-unsafe-eval' https://orientation.code4sud.fr",
   "style-src 'self' 'unsafe-inline'",
   "font-src 'self'",
   "img-src 'self' data:",
-  "connect-src 'self'",
+  `connect-src 'self' ${LLM_HOSTS.join(' ')}`,
+  "worker-src 'self'",
   "media-src 'self'",
   "object-src 'none'",
   "base-uri 'self'",
