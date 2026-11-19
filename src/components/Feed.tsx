@@ -9,6 +9,10 @@ import { StarIcon, TagBadge, Toast, useToast } from './ui';
 import { VideoIcon } from './icons';
 
 const SWIPE_DISTANCE = 90;
+/** Molette : delta cumulé qui déclenche un changement de fiche, et pause entre deux fiches (pavés tactiles). */
+const WHEEL_THRESHOLD_PX = 30;
+const WHEEL_COOLDOWN_MS = 450;
+const WHEEL_LINE_PX = 40;
 
 interface ReelProps {
   item: FeedItem;
@@ -127,6 +131,31 @@ export function Feed({ items, profile, onActive, onOpen, onReload }: FeedProps) 
   const watch = useStore((s) => s.watch);
   const scroller = useRef<HTMLDivElement>(null);
   const { toast, show } = useToast();
+
+  // Molette de souris : avec le scroll aimanté « mandatory », un cran (≈100 px) est
+  // plus petit qu'une demi-carte et le navigateur ramène sur la même fiche. On
+  // traduit donc chaque geste de molette en « fiche suivante / précédente ».
+  useEffect(() => {
+    const el = scroller.current;
+    if (!el) return;
+    let acc = 0;
+    let lockedUntil = 0;
+    const onWheel = (e: WheelEvent) => {
+      if (e.ctrlKey || Math.abs(e.deltaY) <= Math.abs(e.deltaX)) return;
+      e.preventDefault();
+      const now = performance.now();
+      if (now < lockedUntil) return;
+      acc += e.deltaMode === 1 ? e.deltaY * WHEEL_LINE_PX : e.deltaY;
+      if (Math.abs(acc) < WHEEL_THRESHOLD_PX) return;
+      const page = el.clientHeight || 1;
+      const target = Math.round(el.scrollTop / page) + Math.sign(acc);
+      acc = 0;
+      lockedUntil = now + WHEEL_COOLDOWN_MS;
+      el.scrollTo({ top: Math.max(0, target) * page, behavior: 'smooth' });
+    };
+    el.addEventListener('wheel', onWheel, { passive: false });
+    return () => el.removeEventListener('wheel', onWheel);
+  }, []);
 
   const onStar = (video: ReelVideo) => {
     const wasStarred = profile.starredVideoIds.includes(video.id);

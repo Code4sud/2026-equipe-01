@@ -207,6 +207,20 @@ test.describe('Parcours jeune', () => {
     await expect.poll(() => feed.evaluate((el) => Math.round(el.scrollTop / el.clientHeight))).toBe(1);
   });
 
+  test('molette de souris : un cran passe à la fiche suivante, puis revient', async ({ page }, info) => {
+    test.skip(info.project.name !== 'desktop', 'Molette : scénario desktop');
+    await loginYouth(page, 'lucas');
+    const feed = page.getByTestId('feed');
+    const index = () => feed.evaluate((el) => Math.round(el.scrollTop / el.clientHeight));
+    const box = (await feed.boundingBox())!;
+    await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+    await page.mouse.wheel(0, 100); // un cran de molette classique
+    await expect.poll(index).toBe(1);
+    await page.waitForTimeout(500);
+    await page.mouse.wheel(0, -100);
+    await expect.poll(index).toBe(0);
+  });
+
   test('swipe vers la fiche détail, panneau « Pourquoi » puis retour', async ({ page }) => {
     await loginYouth(page, 'noah');
     const first = await firstReelId(page);
