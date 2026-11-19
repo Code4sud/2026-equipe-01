@@ -38,11 +38,13 @@ describe('Landing et authentification', () => {
   it('comptes de démo scindés : 5 jeunes et un accès pro séparé', async () => {
     renderAt('/');
     await userEvent.click(screen.getByTestId('cta-youth'));
-    await userEvent.click(screen.getByText(/Comptes de démo/));
+    expect(screen.queryByTestId('demo-youth')).not.toBeInTheDocument(); // plus d'accordéon
+    await userEvent.click(screen.getByTestId('open-test-accounts'));
     const youth = screen.getByTestId('demo-youth');
-    expect(within(youth).getAllByText('Remplir')).toHaveLength(5);
+    expect(within(youth).getAllByRole('button')).toHaveLength(5);
     expect(youth).toHaveTextContent('Chloé, 18 ans');
-    expect(youth).toHaveTextContent('Investigateur / Logique');
+    expect(youth).toHaveTextContent('Investigateur');
+    expect(youth).toHaveTextContent('#');
     const pro = screen.getByTestId('demo-pro');
     expect(pro).toHaveTextContent('Psychologue du travail');
     expect(pro).toHaveTextContent('dr.martin@polaria.fr');
@@ -55,7 +57,7 @@ describe('Landing et authentification', () => {
     expect(screen.getByTestId('toast')).toHaveTextContent('+5 pts');
   });
 
-  it('connexion : erreur claire puis succès via « Remplir »', async () => {
+  it('connexion : erreur claire, puis compte de test en 1 clic', async () => {
     renderAt('/');
     await userEvent.click(screen.getByTestId('cta-youth'));
     await userEvent.type(screen.getByTestId('login-email'), 'noah@polaria.fr');
@@ -63,9 +65,9 @@ describe('Landing et authentification', () => {
     await userEvent.click(screen.getByTestId('login-submit'));
     expect(screen.getByTestId('login-error')).toHaveTextContent('incorrect');
 
-    await userEvent.click(screen.getByText(/Comptes de démo/));
-    await userEvent.click(screen.getByTestId('fill-noah'));
-    await userEvent.click(screen.getByTestId('login-submit'));
+    await userEvent.click(screen.getByTestId('open-test-accounts'));
+    await userEvent.click(screen.getByTestId('demo-login-noah'));
+    expect(screen.queryByTestId('test-accounts')).not.toBeInTheDocument();
     expect(state().session).toEqual({ accountId: 'noah', role: 'jeune' });
     expect(screen.getByTestId('feed')).toBeInTheDocument();
   });
@@ -134,7 +136,10 @@ describe('App jeune', () => {
     renderAt('/app');
     await userEvent.click(screen.getByTestId('tab-bilan'));
     await userEvent.click(screen.getByTestId('generate-report'));
-    expect(screen.getByTestId('parent-report')).toHaveTextContent('non une évaluation définitive');
+    const report = await screen.findByTestId('parent-report');
+    expect(report).toHaveTextContent('non un verdict');
+    expect(within(report).getAllByTestId('report-track')).toHaveLength(3);
+    expect(within(report).getByTestId('ai-source')).toHaveAttribute('data-source', 'instant'); // pas de WebGPU dans jsdom
   });
 
   it('la fiche détail affiche le match et la logique de l’algo', async () => {

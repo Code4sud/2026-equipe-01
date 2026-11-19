@@ -6,7 +6,7 @@ import { execFileSync } from 'node:child_process';
 import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { join, relative } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { CSP } from '../../vite.config';
+import { CSP, LLM_HOSTS } from '../../vite.config';
 
 const ROOT = join(__dirname, '..', '..');
 const read = (p: string) => readFileSync(join(ROOT, p), 'utf8');
@@ -58,7 +58,7 @@ describe('RGPD : aucun champ de texte libre', () => {
   });
 
   it('l’espace Pro n’a que deux inputs : recherche (non stockée) et import PDF', () => {
-    const pro = read('src/routes/Pro.tsx') + read('src/components/Documents.tsx');
+    const pro = read('src/routes/Pro.tsx') + read('src/components/Documents.tsx') + read('src/components/OnetExplorer.tsx');
     const inputs = pro.match(/<input[\s\S]*?\/>/g) ?? [];
     expect(inputs).toHaveLength(2);
     expect(inputs.some((i) => i.includes('type="search"') && i.includes('maxLength'))).toBe(true);
@@ -111,6 +111,22 @@ describe('Direction artistique v3', () => {
   });
 });
 
+describe('IA locale (WebLLM)', () => {
+  it('WebLLM n’est importé que par le service IA et son worker (chargement à la demande)', () => {
+    const users = SOURCES.filter(({ text }) => text.includes('@mlc-ai/web-llm')).map((s) => s.file.replace(/\\/g, '/'));
+    expect(users.sort()).toEqual(['src/services/aiService.ts', 'src/services/llm.worker.ts']);
+    expect(read('src/services/aiService.ts')).toContain("await import('@mlc-ai/web-llm')");
+  });
+
+  it('le LLM tourne à température 0 en JSON, et sa réponse passe toujours par les garde-fous', () => {
+    const svc = read('src/services/aiService.ts');
+    expect(svc).toContain('temperature: 0');
+    expect(svc).toContain("type: 'json_object'");
+    expect(svc).toContain('sanitizeScenario');
+    expect(svc).toContain('sanitizeParentReport');
+  });
+});
+
 describe('XSS et code dangereux', () => {
   it('pas de dangerouslySetInnerHTML, innerHTML, eval ni new Function', () => {
     for (const { file, text } of SOURCES) {
@@ -134,19 +150,32 @@ describe('XSS et code dangereux', () => {
 });
 
 describe('Content Security Policy', () => {
+  const directive = (name: string) =>
+    CSP.split(';')
+      .map((d) => d.trim())
+      .find((d) => d.startsWith(`${name} `)) ?? '';
+  const hostsOf = (name: string) => directive(name).match(/https:\/\/[^\s;]+/g) ?? [];
+
   it('interdit eval et les scripts inline, limite les origines', () => {
     expect(CSP).toContain("default-src 'self'");
     expect(CSP).toContain("object-src 'none'");
     expect(CSP).toContain("base-uri 'self'");
-    expect(CSP).not.toContain('unsafe-eval');
-    const scriptSrc = CSP.split(';').find((d) => d.trim().startsWith('script-src'))!;
+    expect(CSP).not.toContain("'unsafe-eval'");
+    const scriptSrc = directive('script-src');
     expect(scriptSrc).not.toContain('unsafe-inline');
     expect(scriptSrc).not.toContain('*');
   });
 
-  it('n’autorise aucun autre domaine externe que le bandeau', () => {
-    const hosts = CSP.match(/https:\/\/[^\s;]+/g) ?? [];
-    expect([...new Set(hosts)]).toEqual(['https://orientation.code4sud.fr']);
+  it('script-src : seul le bandeau est un script externe (WebAssembly autorisé pour l’IA locale)', () => {
+    expect(hostsOf('script-src')).toEqual(['https://orientation.code4sud.fr']);
+    expect(directive('script-src')).toContain("'wasm-unsafe-eval'");
+  });
+
+  it('connect-src : uniquement les hôtes publics des poids du modèle WebLLM', () => {
+    expect(hostsOf('connect-src')).toEqual([...LLM_HOSTS]);
+    for (const name of ['default-src', 'style-src', 'font-src', 'img-src', 'worker-src', 'media-src']) {
+      expect(hostsOf(name), name).toEqual([]);
+    }
   });
 
   it('autorise le bandeau obligatoire', () => {

@@ -24,6 +24,11 @@ async function loginPro(page: Page) {
   await expect(page.getByTestId('youth-table')).toBeVisible();
 }
 
+// L'IA locale ne télécharge jamais de modèle pendant les tests : le repli instantané est vérifié.
+test.beforeEach(async ({ page }) => {
+  await page.route(/huggingface\.co|\.hf\.co|raw\.githubusercontent\.com/, (route) => route.abort());
+});
+
 async function firstReelId(page: Page): Promise<string> {
   const id = await page.getByTestId('feed').locator('.reel').first().getAttribute('data-testid');
   return id!.replace('reel-', '');
@@ -48,7 +53,7 @@ test.describe('Socle et sécurité', () => {
     ['connexion', async (page) => {
       await page.goto('./');
       await page.getByTestId('cta-youth').click();
-      await page.getByText('Comptes de démo').click();
+      await page.getByTestId('open-test-accounts').click();
     }],
     ['inscription', async (page) => {
       await page.goto('./');
@@ -109,13 +114,35 @@ test('landing : l’étoile du mockup est cliquable et affiche le micro-toast', 
 });
 
 test.describe('Authentification', () => {
-  test('mauvais mot de passe puis « Remplir » un compte de démo', async ({ page }) => {
+  test('mauvais mot de passe puis compte de test en 1 clic', async ({ page }) => {
     await login(page, 'lucas@polaria.fr', 'faux');
     await expect(page.getByTestId('login-error')).toContainText('incorrect');
-    await page.getByText('Comptes de démo').click();
-    await page.getByTestId('fill-chloe').click();
-    await page.getByTestId('login-submit').click();
+    await page.getByTestId('open-test-accounts').click();
+    await expect(page.getByTestId('demo-youth').getByRole('button')).toHaveCount(5);
+    await page.getByTestId('demo-login-chloe').click();
     await expect(page.getByTestId('feed')).toBeVisible();
+    await expect(page.getByTestId('auth-modal')).toHaveCount(0);
+  });
+
+  test('modale « Comptes de test » : jeunes et pro côte à côte, pro connecté en 1 clic', async ({ page }, info) => {
+    await page.goto('./');
+    await page.getByTestId('cta-pro').click();
+    await page.getByTestId('open-test-accounts').click();
+    const youth = await page.getByTestId('demo-youth').boundingBox();
+    const pro = await page.getByTestId('demo-pro').boundingBox();
+    if (info.project.name === 'desktop') {
+      expect(Math.abs(youth!.y - pro!.y)).toBeLessThan(4); // même ligne
+      expect(pro!.x).toBeGreaterThan(youth!.x + youth!.width - 1);
+    } else {
+      expect(pro!.y).toBeGreaterThan(youth!.y); // empilés sur mobile
+    }
+    await expect(page.getByTestId('demo-pro')).toContainText('Psychologue du travail');
+    await page.keyboard.press('Escape');
+    await expect(page.getByTestId('test-accounts')).toHaveCount(0);
+    await expect(page.getByTestId('auth-modal')).toBeVisible();
+    await page.getByTestId('open-test-accounts').click();
+    await page.getByTestId('demo-login-dr-martin').click();
+    await expect(page.getByTestId('youth-table')).toBeVisible();
   });
 
   test('inscription : le compte apparaît chez le pro, puis disparaît au rechargement', async ({ page }) => {
@@ -200,18 +227,59 @@ test.describe('Parcours jeune', () => {
     await expect(page.getByTestId('feed')).toBeVisible();
   });
 
-  test('débrief « Générer mon avenir » puis rapport parents', async ({ page }) => {
+  test('« Générer mon avenir » : story 4 scènes dans le téléphone, navigation tactile', async ({ page }) => {
+    const violations: string[] = [];
+    page.on('console', (msg) => {
+      if (/Content Security Policy/i.test(msg.text())) violations.push(msg.text());
+    });
     await loginYouth(page, 'yanis');
     await page.getByTestId('open-debrief').click();
-    await expect(page.getByTestId('debrief-line')).toContainText('Salut Yanis');
+    const story = page.getByTestId('debrief');
+    await expect(story.getByTestId('story-subtitle')).toContainText('Imagine-toi', { timeout: 20_000 });
+    await expect(story.getByTestId('ai-source')).toHaveAttribute('data-source', 'instant');
+    const box = await story.boundingBox();
+    const phone = await page.getByTestId('phone').boundingBox();
+    expect(box!.width).toBeLessThanOrEqual(phone!.width + 1);
+    await story.getByTestId('story-next').click();
+    await expect(story.getByText('2/4 ·', { exact: false })).toBeVisible();
+    await story.getByTestId('story-prev').click();
+    await expect(story.getByText('1/4 ·', { exact: false })).toBeVisible();
     await page.getByTestId('close-debrief').click();
+    await expect(story).toHaveCount(0);
+    expect(violations).toEqual([]); // le chemin WebLLM (worker, WebAssembly) respecte la CSP
+  });
+
+  test('Mon Bilan : analyse parents en 4 blocs, 3 pistes, filtre de zones O*NET', async ({ page }) => {
+    await loginYouth(page, 'yanis');
     await page.getByTestId('tab-bilan').click();
     await page.getByTestId('generate-report').click();
-    await expect(page.getByTestId('parent-report')).toContainText('non une évaluation définitive');
+    const report = page.getByTestId('parent-report');
+    await expect(report).toContainText('non un verdict', { timeout: 20_000 });
+    await expect(report.getByTestId('report-track')).toHaveCount(3);
+    for (const id of ['report-summary', 'report-dynamics', 'report-tracks', 'report-advice']) await expect(report.getByTestId(id)).toBeVisible();
+    await page.getByTestId('bilan-zone-short').click();
+    for (const z of await page.getByTestId('bilan-onet-job').evaluateAll((els) => els.map((e) => Number(e.getAttribute('data-zone'))))) {
+      expect(z).toBeLessThanOrEqual(2);
+    }
   });
 });
 
 test.describe('Parcours pro', () => {
+  test('explorateur O*NET : filtre par zone et tri pour le jeune choisi', async ({ page }) => {
+    await loginPro(page);
+    const explorer = page.getByTestId('onet-explorer');
+    await expect(explorer).toContainText('721 métiers');
+    await expect(explorer.getByTestId('onet-job')).toHaveCount(10);
+    await explorer.getByTestId('pro-zone-higher').click();
+    for (const z of await explorer.getByTestId('onet-job').evaluateAll((els) => els.map((e) => Number(e.getAttribute('data-zone'))))) {
+      expect(z).toBeGreaterThanOrEqual(3);
+    }
+    await explorer.getByTestId('onet-for-noah').click();
+    await expect(explorer.getByTestId('onet-job').first()).toContainText(/Son & Média|Créatif & Scène|Design & Image/);
+    await explorer.getByTestId('onet-more').click();
+    await expect(explorer.getByTestId('onet-job')).toHaveCount(20);
+  });
+
   test('RGPD : aucune zone de texte libre, badge visible', async ({ page }) => {
     await loginPro(page);
     await page.getByTestId('manage-lucas').click();
