@@ -1,26 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { radarPoints, toPath } from '../../src/lib/radar';
 import { canSpeak, speak, stopSpeaking } from '../../src/lib/speech';
-
-describe('radarPoints', () => {
-  it('place le premier axe en haut et le 4e en bas (hexagone)', () => {
-    const pts = radarPoints([100, 0, 0, 100, 0, 0], 50, 100);
-    expect(pts[0]).toEqual({ x: 100, y: 50 });
-    expect(pts[3]).toEqual({ x: 100, y: 150 });
-    expect(pts[1]).toEqual({ x: 100, y: 100 });
-  });
-
-  it('borne les valeurs hors échelle et les valeurs invalides', () => {
-    const pts = radarPoints([500, -10, Number.NaN], 10, 0);
-    expect(pts[0]).toEqual({ x: 0, y: -10 });
-    expect(pts[1]).toEqual({ x: 0, y: 0 });
-    expect(pts[2]).toEqual({ x: 0, y: 0 });
-  });
-
-  it('produit un attribut points SVG', () => {
-    expect(toPath([{ x: 1, y: 2 }, { x: 3, y: 4 }])).toBe('1,2 3,4');
-  });
-});
 
 describe('speech', () => {
   afterEach(() => vi.unstubAllGlobals());

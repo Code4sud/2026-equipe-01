@@ -37,7 +37,11 @@ function cspPlugin(): Plugin {
 export default defineConfig({
   base: './',
   plugins: [react(), cspPlugin()],
-  build: { sourcemap: false },
+  build: {
+    sourcemap: false,
+    // Jamais de data: URI : la CSP (font-src/img-src) n’autorise que les fichiers servis par le site.
+    assetsInlineLimit: 0,
+  },
   test: {
     globals: true,
     environment: 'jsdom',

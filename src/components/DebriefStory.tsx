@@ -3,7 +3,7 @@ import type { YouthProfile } from '../domain/types';
 import { VIDEOS } from '../data/videos';
 import { generateDebrief } from '../engine/generate';
 import { canSpeak, speak, stopSpeaking } from '../lib/speech';
-import { StarIcon } from './ui';
+import { Volume2, VolumeX, X } from 'lucide-react';
 
 const LINE_MS = 2600;
 
@@ -40,16 +40,16 @@ export function DebriefStory({ profile, onClose }: { profile: YouthProfile; onCl
       </div>
       <div className="story__top">
         <span className="story__brand">
-          <StarIcon size={16} /> Mon débrief
+          Mon débrief
         </span>
         <div className="story__controls">
           {canSpeak() && (
             <button type="button" className="story__btn" onClick={() => setVoice((v) => !v)} aria-pressed={voice}>
-              {voice ? '🔊' : '🔇'}
+              {voice ? <Volume2 size={18} aria-hidden="true" /> : <VolumeX size={18} aria-hidden="true" />}
             </button>
           )}
           <button type="button" className="story__btn" onClick={onClose} aria-label="Fermer le débrief" data-testid="close-debrief">
-            ✕
+            <X size={18} aria-hidden="true" />
           </button>
         </div>
       </div>

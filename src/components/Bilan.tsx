@@ -4,14 +4,15 @@ import type { YouthProfile } from '../domain/types';
 import { VIDEOS, getVideoById } from '../data/videos';
 import { generateParentReport, type ParentReport } from '../engine/generate';
 import { topTags } from '../engine/signals';
-import { RadarChart, StarIcon, TagBars } from './ui';
+import { Printer } from 'lucide-react';
+import { Logo, RadarChart, TagBars } from './ui';
 
 function Report({ report }: { report: ParentReport }) {
   return (
     <article className="report glass print-area" data-testid="parent-report">
       <header className="report__head">
         <p className="report__brand">
-          <StarIcon size={16} className="accent-star" /> PolarIA
+          <Logo />
         </p>
         <h3 className="display">{report.title}</h3>
         <p className="muted small">{report.subtitle}</p>
@@ -41,7 +42,7 @@ function Report({ report }: { report: ParentReport }) {
       ))}
       <p className="report__disclaimer">{report.disclaimer}</p>
       <button type="button" className="btn btn--glass no-print" onClick={() => window.print()} data-testid="print-report">
-        🖨️ Imprimer / PDF
+        <Printer size={16} aria-hidden="true" /> Imprimer / PDF
       </button>
     </article>
   );

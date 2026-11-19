@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Logo, RadarChart, RgpdBadge, StarIcon, TagBadge, TagBars } from '../components/ui';
+import { ArrowRight, FileText, House, LogOut, Minus, Plus, RotateCcw, Smartphone, Star, Users, X } from 'lucide-react';
+import { Logo, RadarChart, RgpdBadge, TagBadge, TagBars } from '../components/ui';
 import { ALL_TAGS } from '../data/tags';
 import { getVideoById } from '../data/videos';
 import { RIASEC_KEYS, type YouthProfile } from '../domain/types';
@@ -35,18 +36,20 @@ function TagEditor({ profile }: { profile: YouthProfile }) {
       <ul className="editor__list">
         {topTags(profile).map(([tag, score]) => (
           <li key={tag} className="editor__row">
-            <span className="editor__tag">#{tag}</span>
+            <span className="editor__tag" title={tag}>
+              #{tag}
+            </span>
             <button type="button" className="icon-btn icon-btn--sm" aria-label={`Diminuer ${tag}`} onClick={() => proAdjustTag(profile.id, tag, -STEP)} data-testid={`dec-${tag}`}>
-              −
+              <Minus size={14} aria-hidden="true" />
             </button>
-            <span className="editor__score" data-testid={`pro-score-${tag}`}>
+            <span className="editor__score mono" data-testid={`pro-score-${tag}`}>
               {score}
             </span>
             <button type="button" className="icon-btn icon-btn--sm" aria-label={`Augmenter ${tag}`} onClick={() => proAdjustTag(profile.id, tag, STEP)} data-testid={`inc-${tag}`}>
-              +
+              <Plus size={14} aria-hidden="true" />
             </button>
             <button type="button" className="icon-btn icon-btn--sm icon-btn--danger" aria-label={`Supprimer ${tag}`} onClick={() => proRemoveTag(profile.id, tag)} data-testid={`remove-${tag}`}>
-              ✕
+              <X size={14} aria-hidden="true" />
             </button>
           </li>
         ))}
@@ -97,7 +100,7 @@ function YouthPanel({ profile, onClose }: { profile: YouthProfile; onClose: () =
           </p>
         </div>
         <button type="button" className="icon-btn" onClick={onClose} aria-label="Fermer">
-          ✕
+          <X size={18} aria-hidden="true" />
         </button>
       </header>
       <RgpdBadge />
@@ -140,7 +143,7 @@ function YouthPanel({ profile, onClose }: { profile: YouthProfile; onClose: () =
         }}
         data-testid="open-youth-app"
       >
-        Voir le feed de {profile.name} →
+        Voir le feed de {profile.name} <ArrowRight size={16} aria-hidden="true" />
       </button>
     </aside>
   );
@@ -169,16 +172,18 @@ export function Pro() {
         <Logo />
         <ul>
           <li>
-            <span className="pro__nav is-active">👥 Jeunes suivis</span>
+            <span className="pro__nav is-active">
+              <Users size={16} aria-hidden="true" /> Jeunes suivis
+            </span>
           </li>
           <li>
             <Link to="/" className="pro__nav">
-              🏠 Accueil
+              <House size={16} aria-hidden="true" /> Accueil
             </Link>
           </li>
           <li>
             <Link to="/app" className="pro__nav">
-              📱 Application jeune
+              <Smartphone size={16} aria-hidden="true" /> Application jeune
             </Link>
           </li>
         </ul>
@@ -191,10 +196,10 @@ export function Pro() {
           }}
           data-testid="pro-logout"
         >
-          Se déconnecter
+          <LogOut size={15} aria-hidden="true" /> Se déconnecter
         </button>
         <button type="button" className="btn btn--ghost btn--sm" onClick={resetDemo} data-testid="reset-demo">
-          ↺ Réinitialiser la démo
+          <RotateCcw size={15} aria-hidden="true" /> Réinitialiser la démo
         </button>
       </nav>
 
@@ -228,9 +233,11 @@ export function Pro() {
                 <th scope="col">RIASEC dominant</th>
                 <th scope="col">Top 3 tags</th>
                 <th scope="col">
-                  <StarIcon size={14} className="accent-star" /> Étoilées
+                  <Star size={13} aria-hidden="true" /> Étoilées
                 </th>
-                <th scope="col">📄 Docs</th>
+                <th scope="col">
+                  <FileText size={13} aria-hidden="true" /> Docs
+                </th>
                 <th scope="col">Dernière activité</th>
                 <th scope="col">
                   <span className="sr-only">Action</span>

@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { FileText, Upload, X } from 'lucide-react';
 import type { YouthProfile } from '../domain/types';
 import { formatSize } from '../engine/documents';
 import { useStore } from '../store/useStore';
@@ -68,7 +69,7 @@ export function DocumentsSection({ profile }: { profile: YouthProfile }) {
           data-testid="pdf-input"
         />
         <span className="dropzone__icon" aria-hidden="true">
-          📄
+          <Upload size={22} />
         </span>
         <span>
           <strong>Glisser-déposer</strong> ou cliquer pour choisir un PDF
@@ -91,7 +92,7 @@ export function DocumentsSection({ profile }: { profile: YouthProfile }) {
           {profile.documents.map((d) => (
             <li key={d.id} className="docs__item" data-testid={`doc-${d.name}`}>
               <span className="docs__name" title={d.name}>
-                📄 {d.name}
+                <FileText size={15} aria-hidden="true" /> {d.name}
               </span>
               <span className="muted small">
                 {formatDate(d.date)} · {formatSize(d.size)}
@@ -104,7 +105,7 @@ export function DocumentsSection({ profile }: { profile: YouthProfile }) {
                 onClick={() => removeDocument(profile.id, d.id)}
                 data-testid={`remove-doc-${d.id}`}
               >
-                ✕
+                <X size={14} aria-hidden="true" />
               </button>
             </li>
           ))}
