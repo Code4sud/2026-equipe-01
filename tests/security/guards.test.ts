@@ -57,12 +57,17 @@ describe('RGPD : aucun champ de texte libre', () => {
     }
   });
 
-  it('l’espace Pro n’a qu’un seul input : la recherche (type search, non stockée)', () => {
-    const pro = read('src/routes/Pro.tsx');
+  it('l’espace Pro n’a que deux inputs : recherche (non stockée) et import PDF', () => {
+    const pro = read('src/routes/Pro.tsx') + read('src/components/Documents.tsx');
     const inputs = pro.match(/<input[\s\S]*?\/>/g) ?? [];
-    expect(inputs).toHaveLength(1);
-    expect(inputs[0]).toContain('type="search"');
-    expect(inputs[0]).toContain('maxLength');
+    expect(inputs).toHaveLength(2);
+    expect(inputs.some((i) => i.includes('type="search"') && i.includes('maxLength'))).toBe(true);
+    expect(inputs.some((i) => i.includes('type="file"') && i.includes('accept="application/pdf'))).toBe(true);
+  });
+
+  it('le contenu des PDF importés n’est jamais lu', () => {
+    const docs = read('src/components/Documents.tsx') + read('src/engine/documents.ts');
+    expect(docs).not.toMatch(/FileReader|arrayBuffer\(|\.text\(\)|\.stream\(\)/);
   });
 
   it('le store ne contient aucun champ de notes', () => {

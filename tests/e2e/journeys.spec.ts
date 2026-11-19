@@ -1,9 +1,27 @@
 import { expect, test, type Page } from '@playwright/test';
 
-const STORAGE_KEY = 'polaria-demo-v1';
+const STORAGE_KEY = 'polaria-demo-v2';
 
 async function readState(page: Page) {
   return page.evaluate((key) => JSON.parse(localStorage.getItem(key) ?? '{}').state, STORAGE_KEY);
+}
+
+async function login(page: Page, email: string, password: string) {
+  await page.goto('./');
+  await page.getByTestId('cta-youth').click();
+  await page.getByTestId('login-email').fill(email);
+  await page.getByTestId('login-password').fill(password);
+  await page.getByTestId('login-submit').click();
+}
+
+async function loginYouth(page: Page, id: 'lucas' | 'ines' | 'noah' | 'chloe' | 'yanis') {
+  await login(page, `${id}@polaria.fr`, 'jeune123');
+  await expect(page.getByTestId('feed')).toBeVisible();
+}
+
+async function loginPro(page: Page) {
+  await login(page, 'dr.martin@polaria.fr', 'pro123');
+  await expect(page.getByTestId('youth-table')).toBeVisible();
 }
 
 async function firstReelId(page: Page): Promise<string> {
@@ -11,15 +29,8 @@ async function firstReelId(page: Page): Promise<string> {
   return id!.replace('reel-', '');
 }
 
-async function loginYouth(page: Page, id: 'lucas' | 'emma' | 'yanis') {
-  await page.goto('./');
-  await page.getByTestId('cta-youth').click();
-  await page.getByTestId(`pick-${id}`).click();
-  await expect(page.getByTestId('feed')).toBeVisible();
-}
-
 test.describe('Socle et sécurité', () => {
-  test('index.html : bandeau Code4Sud et CSP présents, aucune violation CSP', async ({ page }) => {
+  test('bandeau Code4Sud et CSP présents, aucune violation CSP', async ({ page }) => {
     const violations: string[] = [];
     page.on('console', (msg) => {
       if (/Content Security Policy/i.test(msg.text())) violations.push(msg.text());
@@ -28,28 +39,35 @@ test.describe('Socle et sécurité', () => {
     await expect(page.locator('script[src="https://orientation.code4sud.fr/bandeau.js"][data-equipe="01"]')).toHaveCount(1);
     await expect(page.locator('meta[http-equiv="Content-Security-Policy"]')).toHaveCount(1);
     await expect(page.getByRole('heading', { level: 1 })).toContainText('PolarIA');
-    await page.getByTestId('cta-youth').click();
-    await page.getByTestId('pick-lucas').click();
-    await expect(page.getByTestId('feed')).toBeVisible();
+    await loginYouth(page, 'lucas');
     expect(violations).toEqual([]);
   });
 
   const screens: Array<[string, (page: Page) => Promise<void>]> = [
     ['landing', async (page) => void (await page.goto('./'))],
+    ['connexion', async (page) => {
+      await page.goto('./');
+      await page.getByTestId('cta-youth').click();
+      await page.getByText('Comptes de démo').click();
+    }],
+    ['inscription', async (page) => {
+      await page.goto('./');
+      await page.getByTestId('cta-youth').click();
+      await page.getByTestId('tab-register').click();
+    }],
     ['app jeune', (page) => loginYouth(page, 'lucas')],
     ['bilan', async (page) => {
-      await loginYouth(page, 'emma');
+      await loginYouth(page, 'ines');
       await page.getByTestId('tab-bilan').click();
       await page.getByTestId('generate-report').click();
     }],
     ['fiche détail', async (page) => {
-      await loginYouth(page, 'lucas');
-      await page.getByTestId('open-acteur').click();
+      await loginYouth(page, 'noah');
+      await page.goto('./#/app/details/technicien-son');
     }],
     ['pro + panneau', async (page) => {
-      await page.goto('./');
-      await page.getByTestId('cta-pro').click();
-      await page.getByTestId('manage-emma').click();
+      await loginPro(page);
+      await page.getByTestId('manage-lucas').click();
     }],
   ];
   for (const [name, open] of screens) {
@@ -60,38 +78,89 @@ test.describe('Socle et sécurité', () => {
     });
   }
 
-  test('un localStorage falsifié ne casse pas l’app et n’injecte rien', async ({ page }) => {
+  test('un localStorage falsifié ne donne ni session ni injection', async ({ page }) => {
     await page.goto('./');
     await page.evaluate((key) => {
       localStorage.setItem(
         key,
         JSON.stringify({
-          version: 1,
+          version: 2,
           state: {
-            session: 'jeune',
+            session: { accountId: 'pirate', role: 'pro' },
             currentYouthId: 'lucas',
             profiles: { lucas: { tagScores: { '<img src=x onerror="window.__xss=1">': 99 } } },
           },
         }),
       );
     }, STORAGE_KEY);
-    await page.goto('./#/app');
+    await page.goto('./#/pro');
     await page.reload();
-    await expect(page.getByTestId('feed')).toBeVisible();
+    await expect(page.getByTestId('auth-modal')).toBeVisible();
     expect(await page.evaluate(() => (window as unknown as { __xss?: number }).__xss)).toBeUndefined();
     await expect(page.locator('img[src="x"]')).toHaveCount(0);
   });
 });
 
+test('landing : l’étoile du mockup est cliquable et affiche le micro-toast', async ({ page }) => {
+  await page.goto('./');
+  await page.getByTestId('mock-star').click();
+  await expect(page.getByTestId('mock-star')).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.getByTestId('toast')).toContainText('+5 pts');
+});
+
+test.describe('Authentification', () => {
+  test('mauvais mot de passe puis « Remplir » un compte de démo', async ({ page }) => {
+    await login(page, 'lucas@polaria.fr', 'faux');
+    await expect(page.getByTestId('login-error')).toContainText('incorrect');
+    await page.getByText('Comptes de démo').click();
+    await page.getByTestId('fill-chloe').click();
+    await page.getByTestId('login-submit').click();
+    await expect(page.getByTestId('feed')).toBeVisible();
+  });
+
+  test('inscription : le compte apparaît chez le pro, puis disparaît au rechargement', async ({ page }) => {
+    await page.goto('./');
+    await page.getByTestId('cta-youth').click();
+    await page.getByTestId('tab-register').click();
+    await page.getByTestId('reg-firstName').fill('Sarah');
+    await page.getByTestId('reg-lastName').fill('Benali');
+    await page.getByTestId('reg-age').fill('17');
+    await page.getByTestId('reg-email').fill('sarah@exemple.fr');
+    await page.getByTestId('reg-password').fill('secret1');
+    await page.getByTestId('interest-Design & Image').click();
+    await page.getByTestId('interest-Tech & Numérique').click();
+    await page.getByTestId('register-submit').click();
+    await expect(page.getByTestId('feed')).toBeVisible();
+
+    await page.getByTestId('logout').click();
+    await page.getByTestId('cta-pro').click();
+    await page.getByTestId('login-email').fill('dr.martin@polaria.fr');
+    await page.getByTestId('login-password').fill('pro123');
+    await page.getByTestId('login-submit').click();
+    await expect(page.getByTestId('youth-table').getByText('Sarah')).toBeVisible();
+    await expect(page.getByTestId(/^row-/)).toHaveCount(6);
+
+    expect(JSON.stringify(await readState(page))).not.toContain('Sarah');
+    await page.reload();
+    await expect(page.getByTestId(/^row-/)).toHaveCount(5);
+  });
+});
+
 test.describe('Parcours jeune', () => {
-  test('étoile : toast, étoile rose et +5 sur les tags', async ({ page }) => {
-    await loginYouth(page, 'lucas');
-    const star = page.getByTestId('star-technicien-son');
+  test('étoile : toast, étoile rose, +5 et radar qui bouge', async ({ page }) => {
+    await loginYouth(page, 'noah');
+    const first = await firstReelId(page);
+    const star = page.getByTestId(`star-${first}`);
     await star.click();
-    await expect(page.getByTestId('toast')).toContainText('+5 pts #Son & Média');
+    await expect(page.getByTestId('toast')).toContainText('+5 pts');
     await expect(star).toHaveAttribute('aria-pressed', 'true');
-    const state = await readState(page);
-    expect(state.profiles.lucas.tagScores['Son & Média']).toBe(17);
+    await page.getByTestId('tab-bilan').click();
+    const radar = page.getByTestId('bilan').getByTestId('radar');
+    const before = await radar.getAttribute('data-values');
+    await page.getByTestId('tab-feed').click();
+    await page.getByTestId(`star-${first}`).click();
+    await page.getByTestId('tab-bilan').click();
+    await expect(radar).not.toHaveAttribute('data-values', before!);
   });
 
   test('watch time : +2 après 3 secondes sur une vidéo', async ({ page }) => {
@@ -99,9 +168,7 @@ test.describe('Parcours jeune', () => {
     await loginYouth(page, 'lucas');
     const first = await firstReelId(page);
     await page.clock.runFor(3500);
-    await expect
-      .poll(async () => (await readState(page)).profiles.lucas.watchedVideoIds)
-      .toContain(first);
+    await expect.poll(async () => (await readState(page)).profiles.lucas.watchedVideoIds).toContain(first);
   });
 
   test('scroll vertical avec snap', async ({ page }) => {
@@ -112,8 +179,8 @@ test.describe('Parcours jeune', () => {
     await expect.poll(() => feed.evaluate((el) => Math.round(el.scrollTop / el.clientHeight))).toBe(1);
   });
 
-  test('swipe horizontal vers la fiche détail puis retour', async ({ page }) => {
-    await loginYouth(page, 'lucas');
+  test('swipe vers la fiche détail, panneau « Pourquoi » puis retour', async ({ page }) => {
+    await loginYouth(page, 'noah');
     const first = await firstReelId(page);
     const card = page.getByTestId(`reel-${first}`).locator('.reel__content');
     const box = (await card.boundingBox())!;
@@ -123,15 +190,13 @@ test.describe('Parcours jeune', () => {
     await page.mouse.move(box.x + box.width * 0.2, y, { steps: 12 });
     await page.mouse.up();
     await expect(page).toHaveURL(new RegExp(`#/app/details/${first}$`));
-    await expect(page.getByTestId('details')).toContainText('C’est quoi au quotidien ?');
+    const why = page.getByTestId('why-panel');
+    await expect(why).toBeVisible();
+    await expect(why.getByTestId('match-percent')).toContainText('%');
+    await why.getByTestId('why-star').click();
+    await expect(why.getByTestId('why-star')).toHaveAttribute('aria-pressed', 'true');
     await page.getByTestId('back-to-feed').click();
     await expect(page.getByTestId('feed')).toBeVisible();
-  });
-
-  test('bouton flèche vers la fiche détail', async ({ page }) => {
-    await loginYouth(page, 'emma');
-    await page.getByTestId('open-agent-voyages').click();
-    await expect(page).toHaveURL(/details\/agent-voyages/);
   });
 
   test('débrief « Générer mon avenir » puis rapport parents', async ({ page }) => {
@@ -140,43 +205,67 @@ test.describe('Parcours jeune', () => {
     await expect(page.getByTestId('debrief-line')).toContainText('Salut Yanis');
     await page.getByTestId('close-debrief').click();
     await page.getByTestId('tab-bilan').click();
-    await expect(page.getByTestId('radar')).toBeVisible();
     await page.getByTestId('generate-report').click();
     await expect(page.getByTestId('parent-report')).toContainText('non une évaluation définitive');
   });
 });
 
 test.describe('Parcours pro', () => {
-  test('RGPD : aucune zone de texte, badge visible', async ({ page }) => {
-    await page.goto('./');
-    await page.getByTestId('cta-pro').click();
+  test('RGPD : aucune zone de texte libre, badge visible', async ({ page }) => {
+    await loginPro(page);
     await page.getByTestId('manage-lucas').click();
     await expect(page.getByTestId('rgpd-badge').first()).toBeVisible();
     await expect(page.locator('textarea, [contenteditable="true"]')).toHaveCount(0);
-    await expect(page.getByTestId('youth-panel').locator('input')).toHaveCount(0);
+    await expect(page.getByTestId('youth-panel').locator('input:not([type="file"])')).toHaveCount(0);
   });
 
   test('réorientation : le feed du jeune est instantanément réorienté', async ({ page }) => {
-    await page.goto('./');
-    await page.getByTestId('cta-pro').click();
-    await page.getByTestId('manage-lucas').click();
+    await loginPro(page);
+    await page.getByTestId('manage-noah').click();
     await page.getByTestId('add-tag-select').selectOption('Finance');
     await page.getByTestId('add-tag-btn').click();
     for (let i = 0; i < 6; i++) await page.getByTestId('inc-Finance').click();
     await expect(page.getByTestId('pro-score-Finance')).toHaveText('40');
     await page.getByTestId('open-youth-app').click();
-    const firstReel = page.getByTestId('feed').locator('.reel').first();
-    await expect(firstReel).toHaveAttribute('data-testid', 'reel-conseiller-financier');
+    await expect(page.getByTestId('feed').locator('.reel').first()).toHaveAttribute('data-testid', 'reel-conseiller-financier');
   });
 
-  test('synchronisation en direct entre deux onglets', async ({ page, context }, info) => {
-    test.skip(info.project.name !== 'desktop', 'Panneau algo visible uniquement sur desktop');
+  test('import factice d’un PDF puis suppression', async ({ page }) => {
+    await loginPro(page);
+    await page.getByTestId('manage-chloe').click();
+    await page.getByTestId('pdf-input').setInputFiles({
+      name: 'rapport-des-possibles-2191.pdf',
+      mimeType: 'application/pdf',
+      buffer: Buffer.from('%PDF-1.4 fictif'),
+    });
+    await expect(page.getByTestId('upload-progress')).toBeVisible();
+    const doc = page.getByTestId('doc-rapport-des-possibles-2191.pdf');
+    await expect(doc).toContainText('Importé');
+    await doc.getByRole('button').click();
+    await expect(doc).toHaveCount(0);
+  });
+
+  test('refuse un fichier qui n’est pas un PDF', async ({ page }) => {
+    await loginPro(page);
+    await page.getByTestId('manage-chloe').click();
+    await page.getByTestId('pdf-input').setInputFiles({ name: 'virus.exe', mimeType: 'application/octet-stream', buffer: Buffer.from('MZ') });
+    await expect(page.getByTestId('upload-error')).toContainText('PDF');
+  });
+
+  test('synchro en direct : le radar du jeune bouge quand le pro agit', async ({ page, context }, info) => {
+    test.skip(info.project.name !== 'desktop', 'Deux fenêtres côte à côte : scénario desktop');
     await loginYouth(page, 'lucas');
+    await page.getByTestId('tab-bilan').click();
+    const radar = page.getByTestId('bilan').getByTestId('radar');
+    const before = await radar.getAttribute('data-values');
     const pro = await context.newPage();
     await pro.goto('./#/pro');
-    await pro.getByTestId('pro-login').click();
+    await pro.getByTestId('login-email').fill('dr.martin@polaria.fr');
+    await pro.getByTestId('login-password').fill('pro123');
+    await pro.getByTestId('login-submit').click();
     await pro.getByTestId('manage-lucas').click();
-    await pro.getByTestId('inc-Son & Média').click();
-    await expect(page.getByTestId('algo-panel').getByTestId('tag-score-Son & Média')).toHaveText('17');
+    for (let i = 0; i < 3; i++) await pro.getByTestId('inc-Logistique').click();
+    await expect(radar).not.toHaveAttribute('data-values', before!);
+    await expect(page.getByTestId('bilan').getByTestId('tag-score-Logistique')).toHaveText('19');
   });
 });
