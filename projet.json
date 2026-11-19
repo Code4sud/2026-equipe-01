@@ -1,10 +1,29 @@
 {
   "nom": "PolarIA",
-  "pitch": "Une appli ludique pour orienter les jeunes en fonction de leurs aptitudes et intérêts",
-  "description": "En arrivant dans le centre des possibles, certains jeunes n'ont aucune idée de ce vers quoi ils veulent s'orienter. Il faut créer un outil de suivi qui leur proposera des perspectives d'avenir à partir de leurs intérêts et des résultats des entretiens passés au centre.\n\nDeuxième paragraphe : comment ça marche, et ce que vous avez construit en trois jours.",
-  "ecoles": ["Epitech", "Centrale"],
-  "stack": ["HTML", "JavaScript"],
-  "demo": "",
+  "pitch": "PolarIA transforme le bilan d’orientation du Centre des Possibles en un feed de métiers façon Reels pour les jeunes, un bilan rassurant pour les parents et un suivi par tags pour les pros.",
+  "description": "En arrivant au Centre des Possibles, beaucoup de jeunes de 16 à 25 ans n’ont aucune idée de ce vers quoi s’orienter, et le rapport de 18 pages qu’ils reçoivent après leur bilan est vite oublié. PolarIA transforme ces résultats en perspectives d’avenir à partir de leurs intérêts et de leurs aptitudes.\n\nLe jeune fait défiler des fiches métiers façon Reels : chaque étoile et chaque temps de visionnage nourrissent un algorithme transparent par tags, et le bouton « Générer mon avenir » lui raconte son bilan en moins d’une minute, à l’oral. Les parents disposent d’un rapport d’accompagnement imprimable (radar RIASEC, pistes par durée d’études) et les conseillers réorientent le feed uniquement par tags, sans aucune note libre (RGPD). La restitution est déterministe : une IA qui traduit, jamais une IA qui invente. Données 100 % fictives, application statique testée (unitaires, E2E mobile et desktop) et sécurisée (CSP, recherche de secrets en CI).",
+  "ecoles": [
+    "Epitech",
+    "Centrale"
+  ],
+  "stack": [
+    "React",
+    "TypeScript",
+    "Vite",
+    "Zustand",
+    "Framer Motion",
+    "Vitest",
+    "Playwright",
+    "GitHub Actions"
+  ],
+  "demo": "https://code4sud.github.io/2026-equipe-01/",
   "video": "",
-  "captures": []
+  "captures": [
+    "captures/accueil.png",
+    "captures/feed.png",
+    "captures/debrief.png",
+    "captures/bilan.png",
+    "captures/fiche-metier.png",
+    "captures/pro.png"
+  ]
 }
