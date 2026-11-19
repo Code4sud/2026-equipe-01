@@ -1,8 +1,13 @@
 .env
 .env.*
+!.env.example
 node_modules/
 dist/
 __pycache__/
 .venv/
 .DS_Store
 .vscode
+coverage/
+playwright-report/
+test-results/
+*.log
