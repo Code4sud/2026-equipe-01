@@ -4,12 +4,14 @@ import { riasecOfTag } from '../data/tags';
 export interface FeedItem {
   video: ReelVideo;
   score: number;
-  /** true si la vidéo a été injectée pour éviter la bulle de filtre. */
+  /** true pour une carte « Découverte » (domaine peu scoré, contre la bulle de filtre). */
   exploration: boolean;
 }
 
-/** Nombre de vidéos « pertinentes » entre deux vidéos d'exploration. */
-export const EXPLORATION_EVERY = 4;
+/** 1 fiche sur 4 est une Découverte : positions 4, 8, 12… (les 3 autres exploitent les affinités). */
+export const DISCOVERY_EVERY = 4;
+/** Une fiche est « peu scorée » si son score ne dépasse pas ce ratio du meilleur score. */
+export const DISCOVERY_MAX_RATIO = 1 / 4;
 
 /** Score(vidéo) = somme des tagScores de l'utilisateur pour les tags de la vidéo. */
 export function scoreVideo(video: ReelVideo, tagScores: Record<string, number>): number {
@@ -40,37 +42,66 @@ function isCompatible(video: ReelVideo, key: RiasecKey): boolean {
   return video.tags.some((t) => riasecOfTag(t).includes(key));
 }
 
-/**
- * Construit le feed « Pour toi » : classement par score, puis injection d'une
- * vidéo d'exploration après chaque bloc de EXPLORATION_EVERY vidéos. Une vidéo
- * d'exploration est peu scorée (moitié basse du classement) et compatible avec
- * le RIASEC secondaire du jeune. Chaque vidéo apparaît exactement une fois.
- */
-export function buildFeed(videos: readonly ReelVideo[], profile: YouthProfile): FeedItem[] {
-  const ranked = rankVideos(videos, profile);
-  if (ranked.length <= EXPLORATION_EVERY) return ranked;
+/** Position (1, 2, 3…) réservée à une carte Découverte : 4, 8, 12… */
+export function isDiscoverySlot(position: number): boolean {
+  return position > 0 && position % DISCOVERY_EVERY === 0;
+}
 
+/**
+ * Feed « Pour toi » : Exploitation (3 fiches sur 4) + Découverte (1 sur 4).
+ *
+ * - Exploitation : les fiches les mieux scorées (somme des tagScores), non vues d'abord.
+ * - Découverte : aux positions 4, 8, 12…, une fiche d'un domaine encore peu scoré
+ *   (score <= 1/4 du meilleur), en priorité compatible avec le RIASEC secondaire,
+ *   pour ouvrir de nouvelles voies sans enfermer le jeune dans une bulle.
+ *
+ * `startPosition` permet de reconstruire la suite d'un feed déjà entamé en
+ * gardant le rythme 3 + 1. Chaque vidéo apparaît exactement une fois.
+ */
+export function buildFeed(videos: readonly ReelVideo[], profile: YouthProfile, startPosition = 1): FeedItem[] {
+  const ranked = rankVideos(videos, profile);
+  const best = ranked.reduce((m, item) => Math.max(m, item.score), 0);
   const secondary = secondaryRiasec(profile);
-  const lowerHalf = ranked.slice(Math.ceil(ranked.length / 2));
-  const pool = lowerHalf
-    .filter((item) => isCompatible(item.video, secondary))
-    .sort((a, b) => a.score - b.score);
+  const pool = ranked
+    .map((item, index) => ({ item, index }))
+    .filter(({ item }) => item.score <= best * DISCOVERY_MAX_RATIO)
+    .sort(
+      (a, b) =>
+        Number(isCompatible(b.item.video, secondary)) - Number(isCompatible(a.item.video, secondary)) ||
+        a.item.score - b.item.score ||
+        a.index - b.index,
+    )
+    .map(({ item }) => item);
   const poolIds = new Set(pool.map((p) => p.video.id));
   const main = ranked.filter((item) => !poolIds.has(item.video.id));
 
   const feed: FeedItem[] = [];
-  let sinceExploration = 0;
   while (main.length > 0 || pool.length > 0) {
-    if (sinceExploration === EXPLORATION_EVERY && pool.length > 0) {
+    const position = startPosition + feed.length;
+    if (isDiscoverySlot(position) && pool.length > 0) {
       feed.push({ ...pool.shift()!, exploration: true });
-      sinceExploration = 0;
     } else if (main.length > 0) {
       feed.push(main.shift()!);
-      sinceExploration += 1;
     } else {
-      // Plus de vidéos principales : on termine avec le reste du pool, sans marquer d'exploration.
+      // Plus de fiches d'affinité : on termine avec le reste, sans badge Découverte.
       feed.push(pool.shift()!);
     }
   }
   return feed;
+}
+
+/**
+ * Feed vivant : les fiches déjà atteintes par le jeune restent à leur place
+ * (scores rafraîchis), la suite est recalculée avec le profil actuel. Une
+ * étoile, un regard ou un réglage réoriente donc immédiatement la suite du feed.
+ */
+export function buildLiveFeed(videos: readonly ReelVideo[], profile: YouthProfile, frozen: readonly FeedItem[]): FeedItem[] {
+  const frozenIds = new Set(frozen.map((f) => f.video.id));
+  const head = frozen.map((f) => ({ ...f, score: scoreVideo(f.video, profile.tagScores) }));
+  const tail = buildFeed(
+    videos.filter((v) => !frozenIds.has(v.id)),
+    profile,
+    head.length + 1,
+  );
+  return [...head, ...tail];
 }

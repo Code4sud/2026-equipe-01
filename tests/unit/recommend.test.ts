@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { buildFeed, rankVideos, scoreVideo, secondaryRiasec } from '../../src/engine/recommend';
+import { buildFeed, buildLiveFeed, isDiscoverySlot, rankVideos, scoreVideo, secondaryRiasec } from '../../src/engine/recommend';
+import { toggleStar } from '../../src/engine/signals';
 import { VIDEOS } from '../../src/data/videos';
 import { SEED_PROFILES } from '../../src/data/profiles';
 import { makeProfile, makeVideo } from '../helpers';
@@ -77,19 +78,21 @@ describe('buildFeed', () => {
     expect(first.exploration).toBe(false);
   });
 
-  it('injecte une vidéo d’exploration après chaque bloc de 4', () => {
+  it('place une carte Découverte aux positions 4, 8, 12 (1 fiche sur 4)', () => {
+    expect([1, 2, 3, 4, 8, 12].map(isDiscoverySlot)).toEqual([false, false, false, true, true, true]);
     const feed = buildFeed(VIDEOS, byId('lucas'));
-    expect(feed.slice(0, 4).every((f) => !f.exploration)).toBe(true);
-    expect(feed[4]!.exploration).toBe(true);
+    expect(feed.slice(0, 3).every((f) => !f.exploration)).toBe(true);
+    expect(feed[3]!.exploration).toBe(true);
+    expect(feed[7]!.exploration).toBe(true);
+    expect(feed[11]!.exploration).toBe(true);
+    expect(feed.slice(0, 12).filter((f) => f.exploration)).toHaveLength(3);
   });
 
-  it('choisit une exploration peu scorée et compatible avec le RIASEC secondaire', () => {
-    const lucas = byId('lucas');
-    const feed = buildFeed(VIDEOS, lucas);
-    const explo = feed.filter((f) => f.exploration);
-    expect(explo.length).toBeGreaterThan(0);
-    for (const e of explo) {
-      expect(e.score).toBeLessThan(feed[0]!.score);
+  it('une carte Découverte vient d’un domaine encore peu scoré', () => {
+    for (const p of SEED_PROFILES) {
+      const feed = buildFeed(VIDEOS, p);
+      const best = feed[0]!.score;
+      for (const e of feed.filter((f) => f.exploration)) expect(e.score).toBeLessThanOrEqual(best / 4);
     }
   });
 
@@ -103,5 +106,46 @@ describe('buildFeed', () => {
     const feed = buildFeed(vids, makeProfile());
     expect(feed).toHaveLength(2);
     expect(feed.some((f) => f.exploration)).toBe(false);
+  });
+});
+
+describe('buildLiveFeed (réorientation en direct)', () => {
+  it('garde à l’identique les fiches déjà vues dans la session', () => {
+    const lucas = byId('lucas');
+    const frozen = buildFeed(VIDEOS, lucas).slice(0, 2);
+    const live = buildLiveFeed(VIDEOS, { ...lucas, tagScores: { Finance: 80 } }, frozen);
+    expect(live.slice(0, 2).map((f) => f.video.id)).toEqual(frozen.map((f) => f.video.id));
+    expect(live).toHaveLength(VIDEOS.length);
+    expect(new Set(live.map((f) => f.video.id)).size).toBe(VIDEOS.length);
+  });
+
+  it('réordonne la suite : une étoile sur une Découverte attire son domaine', () => {
+    const lucas = byId('lucas');
+    const feed = buildFeed(VIDEOS, lucas);
+    const discovery = feed[3]!;
+    expect(discovery.exploration).toBe(true);
+    const frozen = feed.slice(0, 4);
+    // Une étoile (+5) puis l'intérêt qui continue de grimper sur ce domaine.
+    const starred = toggleStar(lucas, discovery.video);
+    const p = {
+      ...starred,
+      tagScores: { ...starred.tagScores, ...Object.fromEntries(discovery.video.tags.map((t) => [t, 40])) },
+    };
+    const next = buildLiveFeed(VIDEOS, p, frozen)[4]!;
+    expect(next.video.tags.some((t) => discovery.video.tags.includes(t))).toBe(true);
+  });
+
+  it('continue le rythme 3 + 1 après la partie figée', () => {
+    const lucas = byId('lucas');
+    const frozen = buildFeed(VIDEOS, lucas).slice(0, 5);
+    const live = buildLiveFeed(VIDEOS, lucas, frozen);
+    expect(live[5]!.exploration).toBe(false);
+    expect(live[7]!.exploration).toBe(true);
+  });
+
+  it('met à jour le score affiché des fiches figées', () => {
+    const lucas = byId('lucas');
+    const frozen = buildFeed(VIDEOS, lucas).slice(0, 1);
+    expect(buildLiveFeed(VIDEOS, { ...lucas, tagScores: {} }, frozen)[0]!.score).toBe(0);
   });
 });

@@ -79,6 +79,19 @@ describe('signaux du jeune', () => {
     expect(state().profiles.lucas!.tagScores['Technique & Énergie']).toBe(before + 5);
   });
 
+  it('Mon Profil : voir plus, voir moins et explorer un domaine', () => {
+    const before = state().profiles.lucas!.tagScores['Manuel & Terrain']!;
+    state().youthTune('Manuel & Terrain', 1);
+    expect(state().profiles.lucas!.tagScores['Manuel & Terrain']).toBe(before + 3);
+    state().youthTune('Manuel & Terrain', -1);
+    state().youthTune('Manuel & Terrain', -1);
+    expect(state().profiles.lucas!.tagScores['Manuel & Terrain']).toBe(before - 3);
+    state().youthExplore('Design & Image');
+    expect(state().profiles.lucas!.tagScores['Design & Image']).toBe(6);
+    state().youthExplore('Pas un tag');
+    expect(state().profiles.lucas!.tagScores).not.toHaveProperty('Pas un tag');
+  });
+
   it('ignore une vidéo inconnue', () => {
     const before = structuredClone(state().profiles);
     state().star('nope');

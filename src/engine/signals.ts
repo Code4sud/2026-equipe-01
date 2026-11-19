@@ -5,6 +5,10 @@ export const STAR_POINTS = 5;
 export const WATCH_POINTS = 2;
 export const WATCH_THRESHOLD_MS = 3000;
 export const PRO_NEW_TAG_POINTS = 10;
+/** Réglages du jeune dans « Mon Profil » : Voir plus / Voir moins. */
+export const YOUTH_STEP = 3;
+/** Nouveau domaine choisi par le jeune dans « Explorer de nouveaux domaines ». */
+export const YOUTH_NEW_TAG_POINTS = 6;
 
 export function clampScore(value: number): number {
   return Math.min(TAG_SCORE_MAX, Math.max(TAG_SCORE_MIN, Math.round(value)));
@@ -16,7 +20,7 @@ function applyDelta(scores: Record<string, number>, tags: readonly string[], del
   return next;
 }
 
-/** Étoile (✦) : +5 sur chaque tag de la vidéo, ou -5 si on retire l'étoile. */
+/** Étoile : +5 sur chaque tag de la vidéo, ou -5 si on retire l'étoile. */
 export function toggleStar(profile: YouthProfile, video: ReelVideo): YouthProfile {
   const starred = profile.starredVideoIds.includes(video.id);
   return {
@@ -42,11 +46,11 @@ function assertKnownTag(tag: string): void {
   if (!isKnownTag(tag)) throw new Error('Tag hors catalogue refusé');
 }
 
-/** Réorientation pro : ajoute un tag du catalogue, initialisé à 10. */
-export function addTag(profile: YouthProfile, tag: string): YouthProfile {
+/** Ajoute un tag du catalogue (10 points pour le pro, 6 pour le jeune). */
+export function addTag(profile: YouthProfile, tag: string, points = PRO_NEW_TAG_POINTS): YouthProfile {
   assertKnownTag(tag);
   if (tag in profile.tagScores) return profile;
-  return { ...profile, tagScores: { ...profile.tagScores, [tag]: PRO_NEW_TAG_POINTS } };
+  return { ...profile, tagScores: { ...profile.tagScores, [tag]: clampScore(points) } };
 }
 
 /** Réorientation pro : ajuste le poids d'un tag dans les bornes [0, 100]. */

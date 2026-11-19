@@ -5,7 +5,15 @@ import { DEFAULT_PROFILE_ID, SEED_PROFILES } from '../data/profiles';
 import { SEED_ACCOUNTS } from '../data/accounts';
 import { getVideoById } from '../data/videos';
 import { sanitizeProfiles } from '../domain/validation';
-import { addTag, adjustTag, recordWatch, removeTag, toggleStar } from '../engine/signals';
+import {
+  YOUTH_NEW_TAG_POINTS,
+  YOUTH_STEP,
+  addTag,
+  adjustTag,
+  recordWatch,
+  removeTag,
+  toggleStar,
+} from '../engine/signals';
 import {
   authenticate,
   createYouthAccount,
@@ -39,6 +47,10 @@ export interface PolariaState extends PersistedState {
   previewYouth: (id: string) => void;
   star: (videoId: string) => void;
   watch: (videoId: string) => void;
+  /** Mon Profil : « Voir plus » (+3) ou « Voir moins » (-3) sur un tag du jeune affiché. */
+  youthTune: (tag: string, direction: 1 | -1) => void;
+  /** Mon Profil : explorer un nouveau domaine (+6). */
+  youthExplore: (tag: string) => void;
   proAddTag: (youthId: string, tag: string) => void;
   proAdjustTag: (youthId: string, tag: string, delta: number) => void;
   proRemoveTag: (youthId: string, tag: string) => void;
@@ -145,6 +157,12 @@ export const useStore = create<PolariaState>()(
         watch: (videoId) => {
           const video = getVideoById(videoId);
           if (video && get().session) updateYouth(get().currentYouthId, (p) => recordWatch(p, video));
+        },
+        youthTune: (tag, direction) => {
+          if (get().session) updateYouth(get().currentYouthId, (p) => adjustTag(p, tag, direction * YOUTH_STEP));
+        },
+        youthExplore: (tag) => {
+          if (get().session) updateYouth(get().currentYouthId, (p) => addTag(p, tag, YOUTH_NEW_TAG_POINTS));
         },
         proAddTag: (youthId, tag) => proUpdate(youthId, (p) => addTag(p, tag)),
         proAdjustTag: (youthId, tag, delta) => proUpdate(youthId, (p) => adjustTag(p, tag, delta)),

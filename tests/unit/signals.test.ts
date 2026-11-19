@@ -3,6 +3,8 @@ import {
   PRO_NEW_TAG_POINTS,
   STAR_POINTS,
   WATCH_POINTS,
+  YOUTH_NEW_TAG_POINTS,
+  YOUTH_STEP,
   addTag,
   adjustTag,
   recordWatch,
@@ -51,6 +53,20 @@ describe('recordWatch', () => {
     expect(once.tagScores.Finance).toBe(3);
     expect(once.watchedVideoIds).toEqual(['v1']);
     expect(recordWatch(once, video)).toBe(once);
+  });
+});
+
+describe('réglages du jeune (Mon Profil)', () => {
+  it('Voir plus : +3, Voir moins : -3, jamais sous 0', () => {
+    const p = makeProfile({ tagScores: { Finance: 2 } });
+    expect(YOUTH_STEP).toBe(3);
+    expect(adjustTag(p, 'Finance', YOUTH_STEP).tagScores.Finance).toBe(5);
+    expect(adjustTag(p, 'Finance', -YOUTH_STEP).tagScores.Finance).toBe(0);
+  });
+
+  it('explorer un nouveau domaine l’ajoute à 6 points', () => {
+    const p = makeProfile({ tagScores: {} });
+    expect(addTag(p, 'Design & Image', YOUTH_NEW_TAG_POINTS).tagScores).toEqual({ 'Design & Image': 6 });
   });
 });
 
