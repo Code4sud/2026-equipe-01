@@ -1,13 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import { VIDEOS, getVideoById } from '../../src/data/videos';
 import { SEED_PROFILES } from '../../src/data/profiles';
+import { SEED_ACCOUNTS } from '../../src/data/accounts';
 import { ALL_TAGS, isKnownTag, riasecOfTag } from '../../src/data/tags';
 import { RIASEC_KEYS, ZONE_LABELS } from '../../src/domain/types';
 
 describe('catalogue de vidéos', () => {
-  it('contient entre 12 et 15 vidéos aux ids uniques', () => {
-    expect(VIDEOS.length).toBeGreaterThanOrEqual(12);
-    expect(VIDEOS.length).toBeLessThanOrEqual(15);
+  it('contient assez de vidéos aux ids uniques', () => {
+    expect(VIDEOS.length).toBeGreaterThanOrEqual(20);
     expect(new Set(VIDEOS.map((v) => v.id)).size).toBe(VIDEOS.length);
   });
 
@@ -33,8 +33,30 @@ describe('catalogue de vidéos', () => {
 });
 
 describe('profils fictifs', () => {
-  it('fournit les 3 profils attendus', () => {
-    expect(SEED_PROFILES.map((p) => p.name).sort()).toEqual(['Emma', 'Lucas', 'Yanis']);
+  it('fournit les 5 profils attendus', () => {
+    expect(SEED_PROFILES.map((p) => p.name).sort()).toEqual(['Chloé', 'Inès', 'Lucas', 'Noah', 'Yanis']);
+  });
+
+  it('chaque tag de chaque profil est couvert par au moins 2 vidéos', () => {
+    for (const p of SEED_PROFILES) {
+      for (const t of Object.keys(p.tagScores)) {
+        expect(VIDEOS.filter((v) => v.tags.includes(t)).length, `${p.name} / ${t}`).toBeGreaterThanOrEqual(2);
+      }
+    }
+  });
+
+  it('les vidéos étoilées et les documents de départ sont valides', () => {
+    for (const p of SEED_PROFILES) {
+      for (const id of p.starredVideoIds) expect(getVideoById(id), id).toBeDefined();
+      for (const d of p.documents) expect(d.name).toMatch(/\.pdf$/);
+    }
+    expect(SEED_PROFILES.filter((p) => p.documents.length > 0).length).toBeGreaterThanOrEqual(1);
+  });
+
+  it('chaque profil a un compte de démo et le pro existe', () => {
+    for (const p of SEED_PROFILES) expect(SEED_ACCOUNTS.find((a) => a.id === p.id)?.role).toBe('jeune');
+    expect(SEED_ACCOUNTS.find((a) => a.email === 'dr.martin@polaria.fr')?.role).toBe('pro');
+    expect(new Set(SEED_ACCOUNTS.map((a) => a.email)).size).toBe(SEED_ACCOUNTS.length);
   });
 
   it.each(SEED_PROFILES.map((p) => [p.name, p]))('%s a des données cohérentes', (_n, p) => {

@@ -57,8 +57,8 @@ describe('rankVideos', () => {
 
 describe('secondaryRiasec', () => {
   it('renvoie la 2e dimension RIASEC la plus forte', () => {
-    expect(secondaryRiasec(byId('lucas'))).toBe('Réaliste');
-    expect(secondaryRiasec(byId('emma'))).toBe('Social');
+    expect(secondaryRiasec(byId('lucas'))).toBe('Investigateur');
+    expect(secondaryRiasec(byId('ines'))).toBe('Social');
   });
 });
 
@@ -72,7 +72,7 @@ describe('buildFeed', () => {
   });
 
   it('met en tête la vidéo la mieux scorée', () => {
-    const first = buildFeed(VIDEOS, byId('emma'))[0]!;
+    const first = buildFeed(VIDEOS, byId('ines'))[0]!;
     expect(first.video.tags).toContain('Événementiel & Contact');
     expect(first.exploration).toBe(false);
   });

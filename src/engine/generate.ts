@@ -131,9 +131,13 @@ export const REPORT_DISCLAIMER =
 
 /** Synthèse structurée pour les parents (bouton « Générer le rapport d'accompagnement »). */
 export function generateParentReport(profile: YouthProfile, videos: readonly ReelVideo[]): ParentReport {
-  const forces: string[] = topRiasec(profile, 3).map(
+  const forces: string[] = [];
+  if (!profile.hasBilan) {
+    forces.push('Profil estimé à partir des centres d’intérêt choisis à l’inscription : pas encore de bilan au Centre des Possibles.');
+  }
+  forces.push(...topRiasec(profile, 3).map(
     (k) => `${k} (${profile.riasec[k]}/100) : ${RIASEC_PARENT[k]}.`,
-  );
+  ));
   if (profile.topCognitive.length) forces.push(`Aptitudes les plus marquées : ${profile.topCognitive.join(', ')}.`);
   if (profile.topPersonality.length) forces.push(`Traits de personnalité dominants : ${profile.topPersonality.join(', ')}.`);
 
@@ -169,7 +173,7 @@ export function generateParentReport(profile: YouthProfile, videos: readonly Ree
 
   return {
     title: `Rapport d’accompagnement de ${profile.name}`,
-    subtitle: `${profile.age} ans · ${profile.rdvRef} · Centre des Possibles`,
+    subtitle: profile.hasBilan ? `${profile.age} ans · ${profile.rdvRef} · Centre des Possibles` : `${profile.age} ans · sans bilan pour l’instant`,
     sections: [
       { id: 'forces', title: 'Points forts observés', items: forces },
       { id: 'exploration', title: 'Dynamique d’exploration sur PolarIA', items: exploration },
