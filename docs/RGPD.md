@@ -4,7 +4,7 @@ PolarIA est une démonstration de hackathon dans un dépôt **public**. Ces règ
 
 ## Données fictives uniquement
 
-- Les trois profils (Lucas, Emma, Yanis) sont **inventés**. Ils reprennent la structure des rapports du Centre des Possibles, pas le contenu d'un rapport réel.
+- Les cinq profils (Lucas, Inès, Noah, Chloé, Yanis) sont **inventés**. Ils reprennent la structure des rapports du Centre des Possibles, pas le contenu d'un rapport réel.
 - Aucune donnée personnelle réelle ne doit être ajoutée au dépôt, ni dans le code, ni dans les captures, ni dans les tests.
 
 ## Aucune note libre côté professionnel
@@ -31,10 +31,10 @@ L’import PDF de l’espace Pro est **simulé** : le contenu du fichier n’est
 
 ## Où vont les données ?
 
-Nulle part. L'application n'a pas de serveur et ne fait aucun appel réseau (vérifié par test). L'état de la démo (tags, étoiles, vidéos vues) est stocké dans le `localStorage` du navigateur et peut être effacé avec « Réinitialiser la démo ».
+Nulle part. L'application n'a pas de serveur et notre code ne fait aucun appel réseau (vérifié par test). L'état de la démo (tags, étoiles, vidéos vues) est stocké dans le `localStorage` du navigateur et peut être effacé avec « Réinitialiser la démo ».
 
-Seule ressource externe chargée : le bandeau obligatoire du hackathon (`orientation.code4sud.fr`). Les polices Outfit et Inter sont auto-hébergées, aucune requête ne part vers Google.
+Ressources externes : le bandeau obligatoire du hackathon (`orientation.code4sud.fr`) et, uniquement quand la mini-IA locale démarre sur un ordinateur compatible WebGPU, les fichiers publics du modèle (Hugging Face, GitHub). Ces requêtes ne contiennent aucune donnée du jeune : le modèle s'exécute ensuite dans le navigateur, et le JSON qu'il reçoit (prénom, âge, scores, tags, métiers du catalogue) ne sort jamais de l'appareil. Le « Mode instantané » évite tout téléchargement. Les polices Outfit et Inter sont auto-hébergées, aucune requête ne part vers Google.
 
 ## Restitution prudente
 
-Le rapport parents se termine toujours par : « Ces résultats constituent des pistes de réflexion et non une évaluation définitive. » Le moteur ne produit aucun texte qui ne soit pas tiré du profil ou du catalogue (voir [ALGORITHME.md](ALGORITHME.md)).
+L'analyse pour les parents se termine toujours par : « Ces éléments sont des pistes de réflexion et non un verdict. » Ce rappel est imposé par le code, même quand le texte vient du modèle d'IA. Les métiers, zones et formations cités viennent toujours du catalogue, et toute phrase qui contient un chiffre ou un diplôme absent des données est remplacée (voir [ALGORITHME.md](ALGORITHME.md)).

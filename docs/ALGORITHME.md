@@ -1,4 +1,4 @@
-# Algorithme de recommandation et moteur de restitution
+# Algorithme de recommandation, mini-IA et référentiel O*NET
 
 Code : `src/engine/`. Toutes les fonctions sont pures, déterministes et testées (`tests/unit/`).
 
@@ -44,41 +44,52 @@ Un tag hors catalogue ou une valeur non numérique est **refusé** (exception at
 
 **Pourcentage de match** (`engine/match.ts`) : score de la fiche divisé par le meilleur score possible pour une fiche ayant autant de tags (somme des N meilleurs tags du jeune). 100 % signifie que la fiche porte exactement ses tags les plus forts.
 
-## 5. Moteur « zéro hallucination »
+## 5. Mini-IA « zéro hallucination » (`engine/ai.ts`, `services/aiService.ts`)
 
-Aucun modèle de langage n'est appelé : la démo fonctionne hors-ligne et sans clé. Chaque phrase est un **gabarit fixe** dont les trous sont remplis uniquement avec :
+### Ce que reçoit l'IA
 
-- les valeurs du profil (prénom, âge, scores RIASEC, aptitudes, traits, tags) ;
-- les titres du catalogue `data/videos.ts`.
+`buildAiContext(profile, videos)` produit le **seul** JSON transmis au modèle : prénom, âge, scores RIASEC, aptitudes, 6 tags les plus actifs, titres des fiches étoilées, nombre de fiches regardées, les 8 métiers du store les plus proches (zone, tags, formations, 1re tâche) et la fiche Découverte proposée par l'algorithme. Jamais de nom, de référence de rendez-vous ni de document.
 
-### Débrief jeune : « Générer mon avenir »
+### Deux moteurs, un même format
 
-`generateDebrief(profile, videos)` produit un script de **40 à 60 mots**, au tutoiement, découpé en sous-titres :
+| Moteur | Quand | Comment |
+| --- | --- | --- |
+| **IA locale WebLLM** | Ordinateur avec WebGPU matériel, hors mode économie de données | Qwen2.5 1.5B Instruct (q4f16, open-weight) dans un Web Worker, `temperature: 0`, `response_format: json_object` avec schéma JSON imposé, délai maximal de 60 s |
+| **Mode instantané** | Mobile, pas de WebGPU, erreur, délai dépassé, ou bouton « Mode instantané » | Gabarits fixes remplis uniquement avec le JSON ci-dessus, résultat immédiat |
 
-1. salutation avec le prénom ;
-2. les 2 dimensions RIASEC dominantes, traduites en langage simple (« Réaliste » devient « aimer le concret et bouger ») ;
-3. la 1re aptitude, traduite (« Flexibilité des catégories » devient « savoir t'adapter vite ») ;
-4. le tag le plus actif sur PolarIA ;
-5. en dernier, **2 pistes concrètes** : les 2 vidéos les mieux scorées.
+Le premier chargement du modèle affiche une barre de progression non bloquante ; le bouton « Mode instantané » l'interrompt (le worker est arrêté, le téléchargement aussi) et le choix est mémorisé. Un badge indique toujours qui a écrit le texte.
 
-Des phrases optionnelles (2e aptitude, invitation à utiliser l'étoile) sont ajoutées seulement si le texte est sous 40 mots. Le texte est lu à voix haute par la Web Speech API du navigateur quand elle existe.
+### Mini-IA n°1 : « Reel d'Immersion »
 
-### Rapport parents : « Générer le rapport d'accompagnement »
+Scénario `ImmersiveReelScenario` de 4 scènes de 25 mots maximum, au tutoiement, sans jargon : 1. accroche dans l'ambiance de son premier métier ; 2. ses 2 forces RIASEC traduites (« Réaliste » devient « aimer le concret et bouger ») ; 3. ce que confirment ses étoiles et ses fiches regardées ; 4. la piste Découverte. Le lecteur, dans le téléphone, affiche des barres de progression façon Stories, une grande icône Lucide animée, les sous-titres en gros, des zones tactiles gauche et droite, et lit chaque scène en `fr-FR` (Web Speech API) quand la voix est activée.
 
-`generateParentReport(profile, videos)` suit la structure demandée :
+### Mini-IA n°2 : analyse pour les parents
 
-1. **Points forts observés** : 3 dimensions RIASEC dominantes avec leur score, aptitudes et traits du bilan ;
-2. **Dynamique d'exploration** : tags les plus actifs, fiches mises en favori, fiches regardées ;
-3. **Pistes par durée de formation** : les 6 métiers les mieux scorés, regroupés par zone (0-6 mois à 4-10 ans) ;
-4. **Conseils pour accompagner** : textes fixes et bienveillants ;
-5. pied de page : « Ces résultats constituent des pistes de réflexion et non une évaluation définitive. »
+`ParentReportData` : forces (3 à 4 lignes), dynamique d'exploration, **3 pistes sur des horizons d'études variés** (une courte, zones 1 à 2 ; une moyenne, zone 3 ; une longue, zones 4 à 5, quand le store le permet), 2 ou 3 conseils pour la maison et le rappel officiel. Rendu en cartes éditoriales sous le radar, imprimable (`window.print()`).
 
-Il s'imprime proprement (`window.print()` avec une feuille de style dédiée) ou s'enregistre en PDF depuis le navigateur.
+### Garde-fous appliqués à toute réponse du modèle
+
+- JSON invalide ou incomplet : on bascule sur le mode instantané.
+- `inventsFacts` : une phrase qui contient un **chiffre** ou un **diplôme** (BTS, CAP, Master…) absent du JSON transmis est rejetée et remplacée par la phrase instantanée correspondante.
+- Story : 4 scènes exactement, icône prise dans une liste fermée, durée bornée entre 4 et 8 s, 25 mots par scène, balises et caractères de contrôle retirés.
+- Analyse parents : un métier n'est gardé que s'il existe dans le JSON ; sa **zone et ses formations viennent toujours du store**, jamais du modèle ; il y a toujours 3 pistes ; le rappel « pistes de réflexion et non un verdict » est imposé.
 
 ### Ce que vérifient les tests
 
-`tests/unit/generate.test.ts` contrôle notamment que le débrief fait entre 40 et 60 mots pour chaque profil, qu'il cite exactement 2 métiers **présents dans le catalogue**, qu'il ne contient aucun terme psychométrique brut, et que chaque nombre du rapport parents est un score réel du profil.
+`tests/unit/ai.test.ts` : contenu exact du JSON envoyé, 4 scènes de 25 mots maximum pour chaque profil, absence de jargon, 3 pistes issues du store avec leurs vraies zones et formations, et des réponses de modèle piégées (métier inventé, salaire, doctorat, HTML, icône inconnue, rappel réécrit) qui doivent toutes être neutralisées. En E2E, le téléchargement du modèle est bloqué : on vérifie que le repli instantané fonctionne et qu'aucune violation CSP n'apparaît.
 
-## 6. Brancher un LLM plus tard
+## 6. Référentiel O*NET et zones de qualification
 
-Si l'équipe ajoute un modèle de langage, il devra passer par un **backend** (jamais de clé dans le front, le dépôt est public), avec `temperature` à 0, une entrée JSON limitée au profil et au catalogue, et une sortie JSON structurée. Les gabarits actuels restent le repli hors-ligne, et les tests « zéro hallucination » doivent s'appliquer aussi à la sortie du modèle.
+`scripts/import-onet.mjs` lit `data/table-metiers-onet-fr-jobzones.xlsx` sans dépendance (un .xlsx est un zip de XML) et écrit `src/data/onet.json` : 721 métiers avec code O*NET-SOC, intitulé, zone (colonne « Zone réelle » si renseignée, sinon « jobZone ») et 2 à 3 tags PolarIA attribués par famille SOC puis par mots-clés. Un test vérifie que le JSON est à jour avec le classeur.
+
+Les 41 fiches métier du feed portent leur code O*NET, et leur zone est **celle du référentiel** (test). Quand la consigne et le référentiel divergent (par exemple Esthéticien : zone 2 dans le classeur), c'est le classeur du Centre des Possibles qui fait foi.
+
+| Zone | Durée de préparation |
+| --- | --- |
+| 1 | 0 à 6 mois |
+| 2 | 3 mois à 2 ans |
+| 3 | 1 à 4 ans |
+| 4 | 2 à 6 ans |
+| 5 | 4 à 10 ans |
+
+Filtre « Court (0 à 2 ans) » = zones 1 et 2 ; « Supérieur (1 à 10 ans) » = zones 3 à 5. `rankOnetJobs` trie les métiers par affinité (somme des scores de tags du jeune).
