@@ -1,10 +1,11 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { SEED_ACCOUNTS } from '../data/accounts';
+import { ArrowLeft, ShieldCheck } from 'lucide-react';
+import { DEMO_PERSONAS, SEED_ACCOUNTS } from '../data/accounts';
+import { SEED_PROFILES } from '../data/profiles';
 import { ALL_TAGS } from '../data/tags';
 import type { RegistrationErrors, RegistrationInput } from '../engine/auth';
 import { useStore } from '../store/useStore';
-import { StarIcon } from './ui';
 
 export type AuthTab = 'login' | 'register';
 
@@ -29,12 +30,29 @@ function Field({
   );
 }
 
+const youthAccounts = SEED_ACCOUNTS.filter((a) => a.role === 'jeune');
+const proAccount = SEED_ACCOUNTS.find((a) => a.role === 'pro');
+
+function FillButton({ id, dark = false, onFill }: { id: string; dark?: boolean; onFill: () => void }) {
+  return (
+    <button type="button" className={`btn btn--sm ${dark ? 'btn--on-dark' : 'btn--ghost'}`} data-testid={`fill-${id}`} onClick={onFill}>
+      Remplir
+    </button>
+  );
+}
+
 function LoginForm() {
   const login = useStore((s) => s.login);
   const navigate = useNavigate();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
+
+  const fill = (e: string, p: string) => {
+    setEmail(e);
+    setPassword(p);
+    setError(null);
+  };
 
   const submit = (e: FormEvent) => {
     e.preventDefault();
@@ -57,31 +75,46 @@ function LoginForm() {
       </button>
 
       <details className="demo-accounts" data-testid="demo-accounts">
-        <summary>✦ Comptes de démo (Hackathon)</summary>
-        <ul>
-          {SEED_ACCOUNTS.map((a) => (
-            <li key={a.id}>
+        <summary>Comptes de démo (Hackathon)</summary>
+        <div className="demo-accounts__youth" data-testid="demo-youth">
+          <p className="demo-accounts__label">Comptes jeunes</p>
+          <ul>
+            {youthAccounts.map((a) => {
+              const profile = SEED_PROFILES.find((p) => p.id === a.id);
+              return (
+                <li key={a.id}>
+                  <span>
+                    <strong>
+                      {a.displayName}
+                      {profile ? `, ${profile.age} ans` : ''}
+                    </strong>
+                    <small>{DEMO_PERSONAS[a.id]}</small>
+                    <small className="mono">
+                      {a.email} · {a.password}
+                    </small>
+                  </span>
+                  <FillButton id={a.id} onFill={() => fill(a.email, a.password)} />
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+        {proAccount && (
+          <div className="demo-accounts__pro" data-testid="demo-pro">
+            <p className="demo-accounts__badge">
+              <ShieldCheck size={15} aria-hidden="true" /> Psychologue du travail
+            </p>
+            <div className="demo-accounts__pro-row">
               <span>
-                <strong>{a.displayName}</strong>
-                <small>
-                  {a.email} · {a.password}
+                <strong>{proAccount.displayName}</strong>
+                <small className="mono">
+                  {proAccount.email} · {proAccount.password}
                 </small>
               </span>
-              <button
-                type="button"
-                className="btn btn--ghost btn--sm"
-                data-testid={`fill-${a.id}`}
-                onClick={() => {
-                  setEmail(a.email);
-                  setPassword(a.password);
-                  setError(null);
-                }}
-              >
-                Remplir
-              </button>
-            </li>
-          ))}
-        </ul>
+              <FillButton id={proAccount.id} dark onFill={() => fill(proAccount.email, proAccount.password)} />
+            </div>
+          </div>
+        )}
         <p className="muted small">Comptes fictifs et publics, pour la démo uniquement.</p>
       </details>
     </form>
@@ -153,7 +186,7 @@ function RegisterForm() {
       </fieldset>
 
       <button type="submit" className="btn btn--primary btn--block" data-testid="register-submit">
-        ✦ Créer mon compte
+        Créer mon compte
       </button>
       <p className="muted small">
         Compte de démo gardé en mémoire uniquement : il disparaît si tu recharges la page. Seuls ton prénom et l’initiale de
@@ -182,7 +215,7 @@ export function AuthModal({ initialTab = 'login', onClose }: { initialTab?: Auth
       <div className="modal__backdrop" onClick={onClose} />
       <div className="modal__card modal__card--wide glass" ref={card}>
         <h2 id="auth-title" className="display auth__title">
-          <StarIcon size={20} className="accent-star" /> Bienvenue sur PolarIA
+          Bienvenue sur PolarIA
         </h2>
         <div className="seg" role="tablist">
           <button type="button" role="tab" aria-selected={tab === 'login'} onClick={() => setTab('login')} data-testid="tab-login">
@@ -199,7 +232,7 @@ export function AuthModal({ initialTab = 'login', onClose }: { initialTab?: Auth
           </button>
         ) : (
           <Link to="/" className="btn btn--ghost btn--sm">
-            ← Retour à l’accueil
+            <ArrowLeft size={15} aria-hidden="true" /> Retour à l’accueil
           </Link>
         )}
       </div>
