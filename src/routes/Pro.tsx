@@ -9,6 +9,7 @@ import { topTags } from '../engine/signals';
 import { useCurrentAccount, useStore } from '../store/useStore';
 import { AuthModal } from '../components/AuthModal';
 import { DocumentsSection } from '../components/Documents';
+import { OnetExplorer } from '../components/OnetExplorer';
 
 const COUNSELOR = 'Dr. Martin';
 const STEP = 5;
@@ -280,6 +281,8 @@ export function Pro() {
             </tbody>
           </table>
         </div>
+
+        <OnetExplorer profiles={Object.values(profiles)} />
       </main>
 
       {current && <YouthPanel profile={current} onClose={() => setSelected(null)} />}
