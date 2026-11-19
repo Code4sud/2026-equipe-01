@@ -1,29 +1,33 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useEffectEvent, useRef } from 'react';
 import { motion } from 'framer-motion';
-import { useNavigate } from 'react-router-dom';
+import { ArrowRight, Compass, RotateCcw } from 'lucide-react';
 import type { ReelVideo, YouthProfile } from '../domain/types';
-import { VIDEOS } from '../data/videos';
-import { buildFeed, type FeedItem } from '../engine/recommend';
+import type { FeedItem } from '../engine/recommend';
 import { STAR_POINTS, WATCH_THRESHOLD_MS } from '../engine/signals';
 import { useStore } from '../store/useStore';
 import { StarIcon, TagBadge, Toast, useToast } from './ui';
+import { VideoIcon } from './icons';
 
 const SWIPE_DISTANCE = 90;
 
 interface ReelProps {
   item: FeedItem;
+  index: number;
   starred: boolean;
   root: React.RefObject<HTMLDivElement | null>;
   onStar: (video: ReelVideo) => void;
   onWatched: (video: ReelVideo) => void;
+  onActive: (index: number) => void;
   onOpen: (video: ReelVideo) => void;
 }
 
-function Reel({ item, starred, root, onStar, onWatched, onOpen }: ReelProps) {
+function Reel({ item, index, starred, root, onStar, onWatched, onActive, onOpen }: ReelProps) {
   const { video, exploration } = item;
   const ref = useRef<HTMLElement>(null);
+  const watched = useEffectEvent(() => onWatched(video));
+  const active = useEffectEvent(() => onActive(index));
 
-  // Watch time : > 3 s à l'écran => signal envoyé (le moteur garantit l'unicité).
+  // Carte active + temps de visionnage : > 3 s à l'écran => signal (le moteur garantit l'unicité).
   useEffect(() => {
     const el = ref.current;
     if (!el || typeof IntersectionObserver === 'undefined') return;
@@ -31,7 +35,8 @@ function Reel({ item, starred, root, onStar, onWatched, onOpen }: ReelProps) {
     const observer = new IntersectionObserver(
       ([entry]) => {
         if (entry?.isIntersecting) {
-          timer = window.setTimeout(() => onWatched(video), WATCH_THRESHOLD_MS);
+          active();
+          timer = window.setTimeout(() => watched(), WATCH_THRESHOLD_MS);
         } else {
           window.clearTimeout(timer);
         }
@@ -43,7 +48,7 @@ function Reel({ item, starred, root, onStar, onWatched, onOpen }: ReelProps) {
       window.clearTimeout(timer);
       observer.disconnect();
     };
-  }, [video, root, onWatched]);
+  }, [root]);
 
   return (
     <section ref={ref} className="reel" style={{ background: video.gradient }} data-testid={`reel-${video.id}`} aria-label={video.title}>
@@ -57,11 +62,15 @@ function Reel({ item, starred, root, onStar, onWatched, onOpen }: ReelProps) {
           if (Math.abs(info.offset.x) > SWIPE_DISTANCE) onOpen(video);
         }}
       >
-        {exploration && <span className="reel__explore">🧭 Exploration</span>}
-        <span className="reel__icon" aria-hidden="true">
-          {video.icon}
+        {exploration && (
+          <span className="badge-discovery" data-testid={`discovery-${video.id}`}>
+            <Compass size={14} aria-hidden="true" /> Découverte
+          </span>
+        )}
+        <span className="reel__icon">
+          <VideoIcon name={video.icon} size={84} strokeWidth={1.4} />
         </span>
-        <p className="reel__category">
+        <p className="reel__category mono">
           {video.category} · Zone {video.zone}
         </p>
         <h2 className="reel__title display">{video.title}</h2>
@@ -72,7 +81,7 @@ function Reel({ item, starred, root, onStar, onWatched, onOpen }: ReelProps) {
         </div>
         <p className="reel__hook">{video.hook}</p>
         <p className="reel__hint" aria-hidden="true">
-          Swipe pour la fiche →
+          Glisse pour ouvrir la fiche
         </p>
       </motion.div>
 
@@ -94,55 +103,64 @@ function Reel({ item, starred, root, onStar, onWatched, onOpen }: ReelProps) {
           data-testid={`open-${video.id}`}
           onClick={() => onOpen(video)}
         >
-          →
+          <ArrowRight size={24} aria-hidden="true" />
         </button>
       </div>
     </section>
   );
 }
 
+interface FeedProps {
+  items: FeedItem[];
+  profile: YouthProfile;
+  onActive: (index: number) => void;
+  onOpen: (video: ReelVideo) => void;
+  onReload: () => void;
+}
+
 /**
- * L'ordre du feed est figé au montage pour que la carte ne « saute » pas
- * quand on met une étoile ; il est recalculé à chaque retour sur le feed
- * ou via le bouton « Recharger ».
+ * Feed vertical « Pour toi ». L'ordre vient du parent (buildLiveFeed) : les
+ * fiches déjà vues restent en place, la suite se réoriente en direct.
  */
-export function Feed({ profile }: { profile: YouthProfile }) {
-  const [items, setItems] = useState(() => buildFeed(VIDEOS, profile));
+export function Feed({ items, profile, onActive, onOpen, onReload }: FeedProps) {
   const star = useStore((s) => s.star);
   const watch = useStore((s) => s.watch);
-  const navigate = useNavigate();
   const scroller = useRef<HTMLDivElement>(null);
   const { toast, show } = useToast();
 
   const onStar = (video: ReelVideo) => {
     const wasStarred = profile.starredVideoIds.includes(video.id);
     star(video.id);
-    show(`✦ ${wasStarred ? '-' : '+'}${STAR_POINTS} pts #${video.tags[0]}`);
-  };
-
-  const reload = () => {
-    setItems(buildFeed(VIDEOS, useStore.getState().profiles[profile.id] ?? profile));
-    scroller.current?.scrollTo({ top: 0 });
+    show(`${wasStarred ? '-' : '+'}${STAR_POINTS} pts #${video.tags[0]}`);
   };
 
   return (
     <div className="feed" ref={scroller} data-testid="feed">
-      {items.map((item) => (
+      {items.map((item, index) => (
         <Reel
           key={item.video.id}
           item={item}
+          index={index}
           root={scroller}
           starred={profile.starredVideoIds.includes(item.video.id)}
           onStar={onStar}
           onWatched={(v) => watch(v.id)}
-          onOpen={(v) => navigate(`/app/details/${v.id}`)}
+          onActive={onActive}
+          onOpen={onOpen}
         />
       ))}
       <section className="reel reel--end">
-        <StarIcon size={40} />
-        <p>Tu as tout vu ! Ton feed s’est adapté à tes étoiles.</p>
-        <button type="button" className="btn btn--primary" onClick={reload} data-testid="reload-feed">
-          ↻ Recharger mon feed
+        <p>Tu as tout vu. Ton feed s’est adapté à tes étoiles.</p>
+        <button
+          type="button"
+          className="btn btn--primary"
+          onClick={() => {
+            onReload();
+            scroller.current?.scrollTo({ top: 0 });
+          }}
+          data-testid="reload-feed"
+        >
+          <RotateCcw size={16} aria-hidden="true" /> Recharger mon feed
         </button>
       </section>
       <Toast toast={toast} />

@@ -1,59 +1,82 @@
-import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useMemo, useState } from 'react';
+import { Link, Navigate, useMatch, useNavigate } from 'react-router-dom';
+import { AnimatePresence, motion } from 'framer-motion';
+import { ArrowLeft, Sparkles } from 'lucide-react';
 import { Feed } from '../components/Feed';
 import { Bilan } from '../components/Bilan';
 import { DebriefStory } from '../components/DebriefStory';
 import { AuthModal } from '../components/AuthModal';
-import { StarIcon, TagBars } from '../components/ui';
-import { VIDEOS } from '../data/videos';
-import { buildFeed } from '../engine/recommend';
-import { topTags } from '../engine/signals';
+import { DetailsScreen } from '../components/DetailsScreen';
+import { ProfileScreen } from '../components/ProfileScreen';
+import { AlgoContent } from '../components/AlgoPanel';
+import { WhyContent } from '../components/WhyPanel';
+import { StarIcon, Toast, useIsDesktop, useToast } from '../components/ui';
+import { VIDEOS, getVideoById } from '../data/videos';
+import { buildLiveFeed, type FeedItem } from '../engine/recommend';
+import { STAR_POINTS } from '../engine/signals';
 import { useCurrentYouth, useStore } from '../store/useStore';
-import type { YouthProfile } from '../domain/types';
 
 type Tab = 'feed' | 'bilan';
 
-function AlgoPanel({ profile }: { profile: YouthProfile }) {
-  const next = buildFeed(VIDEOS, profile).slice(0, 8);
-  return (
-    <aside className="algo glass" data-testid="algo-panel" aria-label="Algorithme en direct">
-      <p className="eyebrow">Algo en direct</p>
-      <h3 className="display">Boussole de {profile.name}</h3>
-      <TagBars scores={topTags(profile)} limit={8} />
-      <h4 className="algo__sub">Prochain feed</h4>
-      <ol className="algo__list">
-        {next.map((f) => (
-          <li key={f.video.id}>
-            <span>
-              {f.video.icon} {f.video.title}
-            </span>
-            <span className={f.exploration ? 'algo__explo' : 'algo__score'}>{f.exploration ? '🧭' : f.score}</span>
-          </li>
-        ))}
-      </ol>
-      <p className="muted small">Score = somme des tags · ✦ +5 · regard &gt; 3 s +2 · 🧭 1 exploration toutes les 4.</p>
-    </aside>
-  );
-}
+const slide = {
+  initial: { x: '100%' },
+  animate: { x: 0 },
+  exit: { x: '100%' },
+  transition: { type: 'tween', duration: 0.28, ease: [0.2, 0.8, 0.2, 1] },
+} as const;
 
+/**
+ * Parcours jeune : un cadre téléphone stable au centre (feed, Mon Bilan, fiche,
+ * Mon Profil vivent DEDANS) et, sur desktop, un panneau latéral fixe qui
+ * bascule entre « Algo en direct » et « Pourquoi PolarIA te propose ça ? ».
+ */
 export function YouthApp() {
   const session = useStore((s) => s.session);
+  const star = useStore((s) => s.star);
+  const logout = useStore((s) => s.logout);
   const profile = useCurrentYouth();
+  const navigate = useNavigate();
+  const desktop = useIsDesktop();
+  const detailsMatch = useMatch('/app/details/:videoId');
+  const profileOpen = useMatch('/app/profil') !== null;
   const [tab, setTab] = useState<Tab>('feed');
   const [story, setStory] = useState(false);
-  const logout = useStore((s) => s.logout);
-  const navigate = useNavigate();
+  const { toast, show } = useToast();
 
-  // Un pro peut prévisualiser le feed d'un jeune ; un visiteur doit se connecter.
+  // Feed vivant : les fiches atteintes restent figées, la suite se réoriente en direct.
+  const [frozenFor, setFrozenFor] = useState<{ id: string; items: FeedItem[] }>({ id: profile.id, items: [] });
+  const frozen = useMemo(() => (frozenFor.id === profile.id ? frozenFor.items : []), [frozenFor, profile.id]);
+  const items = useMemo(() => buildLiveFeed(VIDEOS, profile, frozen), [profile, frozen]);
+  const activeIndex = Math.max(0, frozen.length - 1);
+
   if (session === null) return <AuthModal />;
 
+  const videoId = detailsMatch?.params.videoId;
+  const video = videoId ? getVideoById(videoId) : undefined;
+  if (videoId && !video) return <Navigate to="/app" replace />;
+
+  const onActive = (index: number) => {
+    if (index >= frozen.length) setFrozenFor({ id: profile.id, items: items.slice(0, index + 1) });
+  };
+  const toggleStar = (id: string, firstTag: string | undefined) => {
+    const wasStarred = profile.starredVideoIds.includes(id);
+    star(id);
+    show(`${wasStarred ? '-' : '+'}${STAR_POINTS} pts #${firstTag ?? ''}`);
+  };
+
   return (
-    <div className="app-shell">
+    <div className="youth-layout">
       <div className={`phone${tab === 'bilan' ? ' phone--light' : ''}`} data-testid="phone">
         <header className="phone__top">
-          <Link to="/" className="phone__home" aria-label="Retour à l’accueil">
-            <StarIcon size={18} />
-          </Link>
+          {session.role === 'pro' ? (
+            <Link to="/pro" className="phone__home" aria-label="Retour à l’espace Pro" data-testid="back-to-pro">
+              <ArrowLeft size={18} aria-hidden="true" />
+            </Link>
+          ) : (
+            <Link to="/" className="phone__home" aria-label="PolarIA, accueil">
+              <StarIcon size={18} />
+            </Link>
+          )}
           <div className="tabs" role="tablist">
             <button type="button" role="tab" aria-selected={tab === 'feed'} onClick={() => setTab('feed')} data-testid="tab-feed">
               Pour toi
@@ -62,43 +85,77 @@ export function YouthApp() {
               Mon Bilan
             </button>
           </div>
-          {session.role === 'pro' ? (
-            <Link to="/pro" className="phone__who" title="Retour à l’espace Pro" aria-label="Retour à l’espace Pro" data-testid="back-to-pro">
-              ←
-            </Link>
-          ) : (
-            <button
-              type="button"
-              className="phone__who"
-              title={`Se déconnecter (${profile.name})`}
-              aria-label={`Se déconnecter (${profile.name})`}
-              data-testid="logout"
-              onClick={() => {
-                logout();
-                navigate('/');
-              }}
-            >
-              {profile.name.charAt(0)}
-            </button>
-          )}
+          <Link to="/app/profil" className="phone__who" aria-label={`Mon profil (${profile.name})`} data-testid="open-profile">
+            {profile.name.charAt(0)}
+          </Link>
         </header>
 
-        {tab === 'feed' ? (
-          <>
-            <button type="button" className="debrief-cta" onClick={() => setStory(true)} data-testid="open-debrief">
-              ✦ Générer mon avenir
-            </button>
-            <Feed key={profile.id} profile={profile} />
-          </>
-        ) : (
+        {/* Le feed reste monté sous la fiche : on retrouve sa position au retour. */}
+        <div className="phone__main" hidden={tab !== 'feed'}>
+          <button type="button" className="debrief-cta" onClick={() => setStory(true)} data-testid="open-debrief">
+            <Sparkles size={15} aria-hidden="true" /> Générer mon avenir
+          </button>
+          <Feed
+            items={items}
+            profile={profile}
+            onActive={onActive}
+            onOpen={(v) => navigate(`/app/details/${v.id}`)}
+            onReload={() => setFrozenFor({ id: profile.id, items: [] })}
+          />
+        </div>
+        {tab === 'bilan' && (
           <div className="phone__scroll">
             <Bilan profile={profile} />
           </div>
         )}
 
+        <AnimatePresence>
+          {video && (
+            <motion.div key={`details-${video.id}`} className="phone__overlay" {...slide}>
+              <DetailsScreen
+                video={video}
+                profile={profile}
+                showWhy={!desktop}
+                onBack={() => navigate('/app')}
+                onStar={() => toggleStar(video.id, video.tags[0])}
+              />
+            </motion.div>
+          )}
+          {profileOpen && (
+            <motion.div key="profile" className="phone__overlay" {...slide}>
+              <ProfileScreen
+                profile={profile}
+                canLogout={session.role === 'jeune'}
+                onBack={() => navigate('/app')}
+                onLogout={() => {
+                  logout();
+                  navigate('/');
+                }}
+              />
+            </motion.div>
+          )}
+        </AnimatePresence>
+
         {story && <DebriefStory profile={profile} onClose={() => setStory(false)} />}
+        <Toast toast={toast} />
       </div>
-      <AlgoPanel profile={profile} />
+
+      {desktop && (
+        <aside className="side glass" aria-live="polite" data-testid="side-panel">
+          {video ? (
+            <>
+              <p className="eyebrow">Fiche ouverte</p>
+              <h3 className="side__title display">Pourquoi PolarIA te propose ça ?</h3>
+              <WhyContent video={video} profile={profile} onStar={() => toggleStar(video.id, video.tags[0])} />
+            </>
+          ) : (
+            <>
+              <p className="eyebrow">Algo en direct</p>
+              <AlgoContent profile={profile} next={items.slice(activeIndex + 1, activeIndex + 9)} />
+            </>
+          )}
+        </aside>
+      )}
     </div>
   );
 }
