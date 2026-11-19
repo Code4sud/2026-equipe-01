@@ -39,13 +39,20 @@ Les URL utilisent un `#` (`/#/app`) car GitHub Pages ne sait pas renvoyer `index
 | --- | --- | --- |
 | `src/domain/types.ts` | Types du domaine | `YouthProfile`, `ReelVideo`, `RiasecKey`, `JobZone`, `ZONE_LABELS`, bornes des scores |
 | `src/domain/validation.ts` | Revalide tout ce qui sort du localStorage | `sanitizeProfile`, `sanitizeProfiles` |
-| `src/data/tags.ts` | Catalogue fermé des 12 tags et leur lien RIASEC | `TAG_RIASEC`, `ALL_TAGS`, `isKnownTag`, `riasecOfTag` |
-| `src/data/profiles.ts` | 3 profils fictifs (Lucas, Emma, Yanis) | `SEED_PROFILES`, `DEFAULT_PROFILE_ID` |
-| `src/data/videos.ts` | 15 « fake vidéos » de métiers | `VIDEOS`, `getVideoById` |
+| `src/data/tags.ts` | Catalogue fermé des 17 tags et leur lien RIASEC | `TAG_RIASEC`, `ALL_TAGS`, `isKnownTag`, `riasecOfTag` |
+| `src/data/profiles.ts` | 5 profils fictifs (Lucas, Inès, Noah, Chloé, Yanis), avec étoiles et documents de départ | `SEED_PROFILES`, `DEFAULT_PROFILE_ID` |
+| `src/data/accounts.ts` | Comptes de démo publics (5 jeunes + Dr. Martin) | `SEED_ACCOUNTS` |
+| `src/data/videos.ts` | 26 « fake vidéos » de métiers et d’écoles | `VIDEOS`, `getVideoById` |
 | `src/engine/recommend.ts` | Classement du feed | `scoreVideo`, `rankVideos`, `buildFeed`, `secondaryRiasec` |
 | `src/engine/signals.ts` | Mises à jour des scores | `toggleStar`, `recordWatch`, `addTag`, `adjustTag`, `removeTag`, `topTags` |
 | `src/engine/generate.ts` | Restitution déterministe | `generateDebrief`, `generateParentReport`, `plainRiasec`, `plainCognitive` |
-| `src/store/useStore.ts` | État global persistant | `useStore`, `useCurrentYouth`, `enableCrossTabSync`, `syncProfilesFromStorage` |
+| `src/engine/riasec.ts` | Radar vivant et estimation sans bilan | `dynamicRiasec`, `estimateRiasec` |
+| `src/engine/match.ts` | Pourcentage de match d’une fiche | `matchPercent`, `matchedTags` |
+| `src/engine/auth.ts` | Connexion et inscription de démo | `authenticate`, `validateRegistration`, `createYouthAccount` |
+| `src/engine/documents.ts` | Import PDF factice (métadonnées seules) | `validatePdf`, `sanitizeFileName`, `formatSize`, `makeDocument` |
+| `src/store/useStore.ts` | État global : comptes, session, profils, documents | `useStore`, `useCurrentYouth`, `useCurrentAccount`, `enableCrossTabSync` |
+| `src/components/AuthModal.tsx` | Connexion, comptes de démo, inscription | `AuthModal` |
+| `src/components/Documents.tsx` | Glisser-déposer PDF, progression, liste | `DocumentsSection` |
 | `src/lib/radar.ts` | Géométrie du radar SVG | `radarPoints`, `toPath` |
 | `src/lib/speech.ts` | Lecture vocale (Web Speech API) | `speak`, `stopSpeaking`, `canSpeak` |
 | `src/lib/banner.ts` | Mesure du bandeau Code4Sud | `trackBannerHeight` |
@@ -53,7 +60,8 @@ Les URL utilisent un `#` (`/#/app`) car GitHub Pages ne sait pas renvoyer `index
 
 ## Flux de données
 
-1. Au démarrage, le store lit `localStorage["polaria-demo-v1"]` et **revalide** chaque champ (`domain/validation.ts`). L'identité et les résultats du bilan viennent toujours de `data/profiles.ts` ; seuls les tags, étoiles et vidéos vues sont repris.
+0. Connexion : `/app`, la fiche détail et `/pro` affichent la fenêtre de connexion tant qu’aucune session n’est ouverte. Les comptes créés via l’inscription vivent en mémoire et ne sont jamais écrits dans le localStorage.
+1. Au démarrage, le store lit `localStorage["polaria-demo-v2"]` et **revalide** chaque champ (`domain/validation.ts`). L'identité et les résultats du bilan viennent toujours de `data/profiles.ts` ; seuls les tags, étoiles et vidéos vues sont repris.
 2. Une action (étoile, regard de plus de 3 s, bouton +/- du pro) appelle une fonction pure de `engine/signals.ts` qui renvoie un nouveau profil. Le store le persiste.
 3. Les vues recalculent le feed (`buildFeed`) et les textes (`generateDebrief`, `generateParentReport`) à partir du profil.
 4. Si `/app` et `/pro` sont ouverts dans deux onglets, l'événement `storage` propage les profils (pas la session) à l'autre onglet.

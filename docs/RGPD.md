@@ -15,9 +15,19 @@ Les psychologues et conseillers ne saisissent **jamais** de notes ou de comptes 
 - les poids se règlent avec des boutons + et -, bornés entre 0 et 100 ;
 - le seul champ texte de l'espace Pro est la recherche par prénom : elle filtre l'affichage et n'est jamais enregistrée.
 
+Les deux seuls champs de l’espace Pro sont la recherche (non enregistrée) et l’import PDF.
+
 Contrôles automatiques : la règle ESLint `no-restricted-syntax` interdit `<textarea>`, le test `tests/security/guards.test.ts` refuse `textarea`, `contentEditable` et tout champ de type notes dans les types, et les tests d'intégration et E2E vérifient qu'aucune zone de texte n'existe dans le panneau Pro.
 
 Le badge « Mode RGPD actif » est affiché en permanence dans l'espace Pro.
+
+## Inscription : minimisation et mémoire seule
+
+Le formulaire « Créer un compte (Jeune) » demande prénom, nom, âge, email et mot de passe pour la démonstration, mais **seuls le prénom et l’initiale du nom** sont conservés, **en mémoire uniquement** : rien n’est écrit dans le localStorage (vérifié par test), tout disparaît au rechargement.
+
+## Import du Rapport des Possibles
+
+L’import PDF de l’espace Pro est **simulé** : le contenu du fichier n’est jamais lu ni envoyé (aucun `FileReader`, vérifié par test). Seuls le nom (nettoyé), la taille et la date sont gardés. Le Rapport des Possibles réel ne doit pas être importé sur cette démo publique.
 
 ## Où vont les données ?
 

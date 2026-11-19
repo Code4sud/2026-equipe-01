@@ -33,7 +33,15 @@ Dans l'app, l'ordre est figé tant que le jeune est sur le feed (la carte ne « 
 
 Un tag hors catalogue ou une valeur non numérique est **refusé** (exception attrapée par le store, l'action est ignorée).
 
-## 4. Moteur « zéro hallucination »
+## 4. Radar RIASEC vivant et pourcentage de match
+
+**Radar vivant** (`engine/riasec.ts`, `dynamicRiasec`) : on part des scores du bilan, puis chaque tag actif ajoute des points à ses dimensions RIASEC (dimension principale : 1 point pour 4 points de tag ; dimension secondaire : moitié moins). Le décalage est **plafonné à 15 points** par dimension pour ne jamais trahir le bilan. Le radar affiche les deux : pointillés pour le bilan, trait rose pour « aujourd’hui ». Il s’anime à chaque étoile, regard de plus de 3 s ou action du conseiller, y compris depuis un autre onglet.
+
+**Comptes créés sans bilan** (`estimateRiasec`) : base 35 partout, +20 sur la dimension principale et +10 sur la secondaire de chaque centre d’intérêt choisi, plafond 85. Ce profil est toujours présenté comme une **estimation** (radar, bilan et rapport parents le disent explicitement).
+
+**Pourcentage de match** (`engine/match.ts`) : score de la fiche divisé par le meilleur score possible pour une fiche ayant autant de tags (somme des N meilleurs tags du jeune). 100 % signifie que la fiche porte exactement ses tags les plus forts.
+
+## 5. Moteur « zéro hallucination »
 
 Aucun modèle de langage n'est appelé : la démo fonctionne hors-ligne et sans clé. Chaque phrase est un **gabarit fixe** dont les trous sont remplis uniquement avec :
 
@@ -68,6 +76,6 @@ Il s'imprime proprement (`window.print()` avec une feuille de style dédiée) ou
 
 `tests/unit/generate.test.ts` contrôle notamment que le débrief fait entre 40 et 60 mots pour chaque profil, qu'il cite exactement 2 métiers **présents dans le catalogue**, qu'il ne contient aucun terme psychométrique brut, et que chaque nombre du rapport parents est un score réel du profil.
 
-## 5. Brancher un LLM plus tard
+## 6. Brancher un LLM plus tard
 
 Si l'équipe ajoute un modèle de langage, il devra passer par un **backend** (jamais de clé dans le front, le dépôt est public), avec `temperature` à 0, une entrée JSON limitée au profil et au catalogue, et une sortie JSON structurée. Les gabarits actuels restent le repli hors-ligne, et les tests « zéro hallucination » doivent s'appliquer aussi à la sortie du modèle.
