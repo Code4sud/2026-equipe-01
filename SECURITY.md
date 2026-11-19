@@ -33,6 +33,8 @@ connect-src 'self'; media-src 'self';
 object-src 'none'; base-uri 'self'; form-action 'none'
 ```
 
+Vite est configuré pour ne jamais intégrer de fichiers en `data:` (`assetsInlineLimit: 0`) : les polices restent servies par le site et respectent `font-src 'self'`. Un test E2E échoue en cas de violation CSP.
+
 `style-src 'unsafe-inline'` reste nécessaire : le bandeau Code4Sud et l'animation de swipe posent des styles en ligne. Ce n'est pas un vecteur d'exécution de script.
 
 GitHub Pages ne permet pas d'envoyer d'en-têtes HTTP personnalisés : `X-Frame-Options`, `frame-ancestors` et HSTS ne sont donc pas configurables ici. Si l'application passe sur un hébergeur avec backend (Vercel, Render), ajouter ces en-têtes côté serveur.

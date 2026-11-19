@@ -10,16 +10,17 @@ Score(vidéo) = somme, pour chaque tag t de la vidéo, de user.tagScores[t]
 
 Un tag absent du profil compte pour 0. Les scores de tags sont toujours bornés entre 0 et 100.
 
-## 2. Construction du feed « Pour toi »
+## 2. Construction du feed « Pour toi » : Exploitation + Découverte
 
-`buildFeed(videos, profile)` :
+`buildFeed(videos, profile, startPosition)` :
 
-1. Les vidéos **pas encore vues** passent avant les vidéos déjà vues.
-2. Dans chaque groupe, tri par score décroissant. À score égal, l'ordre du catalogue est conservé (résultat stable et reproductible).
-3. **Anti-bulle :** après chaque bloc de 4 vidéos, on insère 1 vidéo d'**exploration** (badge 🧭). Elle est choisie dans la moitié basse du classement, parmi les vidéos dont un tag correspond à la **2e dimension RIASEC** la plus forte du jeune, en commençant par la moins bien scorée.
-4. Chaque vidéo apparaît exactement une fois.
+1. **Exploitation (3 fiches sur 4)** : les fiches les mieux scorées, non vues d'abord, à score égal dans l'ordre du catalogue.
+2. **Découverte (1 fiche sur 4)** : aux positions **4, 8, 12…**, une fiche d'un domaine encore **peu scoré** (score inférieur ou égal au quart du meilleur score), en priorité compatible avec la 2e dimension RIASEC du jeune. Elle porte le badge « Découverte » (icône boussole) dans le feed et dans « Prochain feed ».
+3. Chaque fiche apparaît exactement une fois.
 
-Dans l'app, l'ordre est figé tant que le jeune est sur le feed (la carte ne « saute » pas quand il met une étoile). Il est recalculé au retour sur le feed ou avec le bouton « Recharger mon feed ». Sur desktop, le panneau « Algo en direct » montre le prochain feed et les scores en temps réel.
+**Feed vivant** (`buildLiveFeed`) : les fiches que le jeune a déjà atteintes restent à leur place ; toute la suite est recalculée à chaque changement de score, en gardant le rythme 3 + 1. Une étoile sur une carte Découverte fait donc remonter son domaine immédiatement dans la suite du feed.
+
+Sur desktop, le panneau « Algo en direct » montre la boussole des tags et les 8 prochaines fiches, en temps réel.
 
 ## 3. Signaux et mises à jour
 
@@ -30,6 +31,8 @@ Dans l'app, l'ordre est figé tant que le jeune est sur le feed (la carte ne « 
 | Pro : ajouter un tag | Le tag (choisi dans le catalogue fermé) démarre à 10 | `addTag` |
 | Pro : boutons + et - | +5 ou -5, borné entre 0 et 100 | `adjustTag` |
 | Pro : supprimer | Retire le tag du profil | `removeTag` |
+| Jeune (Mon Profil) : voir plus / voir moins | +3 ou -3, minimum 0 | `adjustTag` via `youthTune` |
+| Jeune (Mon Profil) : explorer un domaine | Le tag démarre à 6 | `addTag` via `youthExplore` |
 
 Un tag hors catalogue ou une valeur non numérique est **refusé** (exception attrapée par le store, l'action est ignorée).
 

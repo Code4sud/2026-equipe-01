@@ -1,7 +1,7 @@
 {
   "nom": "PolarIA",
   "pitch": "PolarIA transforme le bilan d’orientation du Centre des Possibles en un feed de métiers façon Reels pour les jeunes, un bilan rassurant pour les parents et un suivi par tags pour les pros.",
-  "description": "En arrivant au Centre des Possibles, beaucoup de jeunes de 16 à 25 ans n’ont aucune idée de ce vers quoi s’orienter, et le rapport de 18 pages qu’ils reçoivent après leur bilan est vite oublié. PolarIA transforme ces résultats en perspectives d’avenir à partir de leurs intérêts et de leurs aptitudes.\n\nLe jeune fait défiler des fiches métiers façon Reels : chaque étoile et chaque temps de visionnage nourrissent un algorithme transparent par tags, et le bouton « Générer mon avenir » lui raconte son bilan en moins d’une minute, à l’oral. Chaque fiche explique pourquoi elle est proposée (pourcentage de match, tags et règles de l’algorithme), et le radar RIASEC évolue en direct avec les choix du jeune. Les parents disposent d’un rapport d’accompagnement imprimable (pistes par durée d’études) et les conseillers réorientent le feed uniquement par tags et rattachent le Rapport des Possibles en PDF, sans aucune note libre (RGPD). La restitution est déterministe : une IA qui traduit, jamais une IA qui invente. Données 100 % fictives, application statique testée (unitaires, E2E mobile et desktop) et sécurisée (CSP, recherche de secrets en CI).",
+  "description": "En arrivant au Centre des Possibles, beaucoup de jeunes de 16 à 25 ans n’ont aucune idée de ce vers quoi s’orienter, et le rapport de 18 pages qu’ils reçoivent après leur bilan est vite oublié. PolarIA transforme ces résultats en perspectives d’avenir à partir de leurs intérêts et de leurs aptitudes.\n\nLe jeune fait défiler des fiches métiers façon Reels : chaque étoile et chaque temps de visionnage nourrissent un algorithme transparent par tags (3 fiches d’affinité, 1 fiche Découverte pour sortir de la bulle), il pilote lui-même ses tags dans « Mon Profil », et le bouton « Générer mon avenir » lui raconte son bilan en moins d’une minute, à l’oral. Chaque fiche explique pourquoi elle est proposée (pourcentage de match, tags et règles de l’algorithme), et le radar RIASEC évolue en direct avec les choix du jeune. Les parents disposent d’un rapport d’accompagnement imprimable (pistes par durée d’études) et les conseillers réorientent le feed uniquement par tags et rattachent le Rapport des Possibles en PDF, sans aucune note libre (RGPD). La restitution est déterministe : une IA qui traduit, jamais une IA qui invente. Données 100 % fictives, application statique testée (unitaires, E2E mobile et desktop) et sécurisée (CSP, recherche de secrets en CI).",
   "ecoles": [
     "Epitech",
     "Centrale"
@@ -11,6 +11,8 @@
     "TypeScript",
     "Vite",
     "Zustand",
+    "Recharts",
+    "lucide-react",
     "Framer Motion",
     "Vitest",
     "Playwright",
@@ -20,11 +22,12 @@
   "video": "",
   "captures": [
     "captures/accueil.png",
+    "captures/solution.png",
     "captures/connexion.png",
     "captures/feed.png",
-    "captures/debrief.png",
-    "captures/bilan.png",
     "captures/fiche-metier.png",
+    "captures/profil.png",
+    "captures/bilan.png",
     "captures/pro.png"
   ]
 }

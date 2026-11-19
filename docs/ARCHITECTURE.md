@@ -12,14 +12,15 @@ index.html (bandeau Code4Sud, CSP au build)
    └─ src/main.tsx  HashRouter + synchro inter-onglets + hauteur du bandeau
         └─ src/App.tsx  routes
              ├─ /                       routes/Landing.tsx
-             ├─ /app                    routes/YouthApp.tsx
+             ├─ /app (route-layout)     routes/YouthApp.tsx : téléphone + panneau latéral
+             │    ├─ /app/details/:id   components/DetailsScreen.tsx (dans le téléphone)
+             │    ├─ /app/profil        components/ProfileScreen.tsx (dans le téléphone)
              │    ├─ components/Feed.tsx          feed vertical, étoile, watch time, swipe
              │    ├─ components/DebriefStory.tsx  « Générer mon avenir » + voix
              │    └─ components/Bilan.tsx         radar, tags, rapport parents
-             ├─ /app/details/:videoId   routes/Details.tsx
              └─ /pro                    routes/Pro.tsx  tableau + éditeur de tags
 
-          UI ──lit/écrit──▶ store/useStore.ts (Zustand + localStorage)
+          UI ──lit/écrit──> store/useStore.ts (Zustand + localStorage)
                                  │ appelle
                                  ▼
           engine/signals.ts    (étoile, regard, édition pro : fonctions pures)
@@ -51,7 +52,11 @@ Les URL utilisent un `#` (`/#/app`) car GitHub Pages ne sait pas renvoyer `index
 | `src/engine/auth.ts` | Connexion et inscription de démo | `authenticate`, `validateRegistration`, `createYouthAccount` |
 | `src/engine/documents.ts` | Import PDF factice (métadonnées seules) | `validatePdf`, `sanitizeFileName`, `formatSize`, `makeDocument` |
 | `src/store/useStore.ts` | État global : comptes, session, profils, documents | `useStore`, `useCurrentYouth`, `useCurrentAccount`, `enableCrossTabSync` |
-| `src/components/AuthModal.tsx` | Connexion, comptes de démo, inscription | `AuthModal` |
+| `src/components/AuthModal.tsx` | Connexion, comptes de démo (jeunes / pro séparés), inscription | `AuthModal` |
+| `src/components/icons.tsx` | Catalogue d’icônes lucide-react des fiches | `VideoIcon`, `VIDEO_ICONS` |
+| `src/components/DetailsScreen.tsx` | Fiche affichée dans le téléphone | `DetailsScreen` |
+| `src/components/ProfileScreen.tsx` | Mon Profil & Mes Tags | `ProfileScreen` |
+| `src/components/AlgoPanel.tsx`, `WhyPanel.tsx` | Contenus du panneau latéral | `AlgoContent`, `WhyContent` |
 | `src/components/Documents.tsx` | Glisser-déposer PDF, progression, liste | `DocumentsSection` |
 | `src/lib/radar.ts` | Géométrie du radar SVG | `radarPoints`, `toPath` |
 | `src/lib/speech.ts` | Lecture vocale (Web Speech API) | `speak`, `stopSpeaking`, `canSpeak` |

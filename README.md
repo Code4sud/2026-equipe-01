@@ -10,7 +10,7 @@ Au Centre des Possibles (Nice Méridia), les 16-25 ans repartent de leur bilan d
 
 | Pour qui | Quoi |
 | --- | --- |
-| **Le jeune** | Un feed vertical façon Reels de fiches métiers, formations et écoles. Une étoile ✦, un swipe : l'algorithme apprend ce qui l'attire. Chaque fiche explique « Pourquoi PolarIA te propose ça ? » (pourcentage de match, tags, règles). Le bouton « Générer mon avenir » lui raconte son bilan en 40 à 60 mots, à l'oral. |
+| **Le jeune** | Un feed vertical façon Reels de fiches métiers, formations et écoles. Une étoile, un swipe : l'algorithme apprend ce qui l'attire, et 1 fiche sur 4 est une « Découverte » pour sortir de la bulle. Dans « Mon Profil », il règle lui-même ses tags (voir plus, voir moins, nouveaux domaines). Chaque fiche explique « Pourquoi PolarIA te propose ça ? » (pourcentage de match, tags, règles). Le bouton « Générer mon avenir » lui raconte son bilan en 40 à 60 mots, à l'oral. |
 | **Les parents** | L'onglet « Mon Bilan » : radar RIASEC qui évolue en direct, centres d'intérêt explorés et rapport d'accompagnement imprimable, avec des pistes rangées par durée d'études. |
 | **Les pros** | Un tableau de bord où le conseiller réoriente le feed avec des tags et des poids, et rattache le Rapport des Possibles en PDF (import simulé). Aucune note libre, aucune donnée médicale. |
 
@@ -75,7 +75,7 @@ Première exécution des tests E2E : `npx playwright install chromium`.
 
 ## Stack
 
-React 19, TypeScript, Vite, Zustand, React Router, Framer Motion, polices Outfit et Inter auto-hébergées (Fontsource). Tests : Vitest, Testing Library, Playwright. CI GitHub Actions : lint, types, tests, E2E, recherche de secrets (gitleaks) et audit des dépendances.
+React 19, TypeScript, Vite, Zustand, React Router, Framer Motion, Recharts (radar), lucide-react (icônes, aucun emoji). Polices auto-hébergées (Fontsource) : Outfit (titres), Inter (texte), Instrument Serif (citations), JetBrains Mono (scores et chapitres). Tests : Vitest, Testing Library, Playwright. CI GitHub Actions : lint, types, tests, E2E, recherche de secrets (gitleaks) et audit des dépendances.
 
 ## Publier sur le site du hackathon
 

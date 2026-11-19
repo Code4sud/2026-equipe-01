@@ -28,13 +28,13 @@ La couverture est mesurée sur `src/engine`, `src/domain`, `src/data`, `src/stor
 
 ## Garde-fous (`tests/security/guards.test.ts`)
 
-Ils échouent si quelqu'un réintroduit un risque : bandeau Code4Sud absent, `projet.json` invalide, `<textarea>` ou `contentEditable`, `dangerouslySetInnerHTML`, `innerHTML`, `eval`, appel réseau, lien `target="_blank"` sans `noopener`, CSP affaiblie, clé d'API ou fichier `.env` suivi par git, fichier de consignes pour agents IA poussé dans le dépôt.
+Ils échouent si quelqu'un réintroduit un risque ou casse la DA (aucun emoji système, aucun caractère ✦ décoratif, étoile réservée au logo et au bouton Étoile, chaque fiche avec une icône Lucide connue) : bandeau Code4Sud absent, `projet.json` invalide, `<textarea>` ou `contentEditable`, `dangerouslySetInnerHTML`, `innerHTML`, `eval`, appel réseau, lien `target="_blank"` sans `noopener`, CSP affaiblie, clé d'API ou fichier `.env` suivi par git, fichier de consignes pour agents IA poussé dans le dépôt.
 
 ## Bout en bout
 
 `tests/e2e/journeys.spec.ts` tourne sur deux projets Playwright : **mobile** (390 x 844, tactile) et **desktop** (1440 x 900). Il construit l'app puis la sert avec `vite preview`.
 
-Parcours couverts : connexion et inscription (le compte apparaît chez le pro puis disparaît au rechargement), radar qui bouge après une étoile et après une action du pro dans un autre onglet, panneau « Pourquoi » sur la fiche, import et refus de fichiers, bandeau et CSP sans violation, absence de défilement horizontal sur chaque écran, localStorage piégé sans exécution de script, étoile, regard de 3 s (horloge simulée), scroll vertical aimanté, swipe vers la fiche, débrief puis rapport parents, espace Pro sans zone de texte, réorientation visible dans le feed, synchro en direct entre deux onglets.
+Parcours couverts : fiche ouverte dans le téléphone avec bascule du panneau latéral, « Prochain feed » sur une ligne et barres sans chevauchement ni débordement, Mon Profil qui réoriente la boussole, landing éditoriale, connexion et inscription (le compte apparaît chez le pro puis disparaît au rechargement), radar qui bouge après une étoile et après une action du pro dans un autre onglet, panneau « Pourquoi » sur la fiche, import et refus de fichiers, bandeau et CSP sans violation, absence de défilement horizontal sur chaque écran, localStorage piégé sans exécution de script, étoile, regard de 3 s (horloge simulée), scroll vertical aimanté, swipe vers la fiche, débrief puis rapport parents, espace Pro sans zone de texte, réorientation visible dans le feed, synchro en direct entre deux onglets.
 
 Première exécution en local :
 
