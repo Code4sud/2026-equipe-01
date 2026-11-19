@@ -1,10 +1,12 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { ArrowLeft, ShieldCheck } from 'lucide-react';
-import { DEMO_PERSONAS, SEED_ACCOUNTS } from '../data/accounts';
+import { ArrowLeft, ArrowRight, Cpu, HeartPulse, Megaphone, Palette, ShieldCheck, Users, Wrench, X, type LucideIcon } from 'lucide-react';
+import { SEED_ACCOUNTS } from '../data/accounts';
 import { SEED_PROFILES } from '../data/profiles';
 import { ALL_TAGS } from '../data/tags';
 import type { RegistrationErrors, RegistrationInput } from '../engine/auth';
+import { dominantRiasec } from '../engine/riasec';
+import { topTags } from '../engine/signals';
 import { useStore } from '../store/useStore';
 
 export type AuthTab = 'login' | 'register';
@@ -33,26 +35,20 @@ function Field({
 const youthAccounts = SEED_ACCOUNTS.filter((a) => a.role === 'jeune');
 const proAccount = SEED_ACCOUNTS.find((a) => a.role === 'pro');
 
-function FillButton({ id, dark = false, onFill }: { id: string; dark?: boolean; onFill: () => void }) {
-  return (
-    <button type="button" className={`btn btn--sm ${dark ? 'btn--on-dark' : 'btn--ghost'}`} data-testid={`fill-${id}`} onClick={onFill}>
-      Remplir
-    </button>
-  );
-}
+const PERSONA_ICONS: Record<string, LucideIcon> = {
+  lucas: Wrench,
+  ines: Megaphone,
+  noah: Palette,
+  chloe: Cpu,
+  yanis: HeartPulse,
+};
 
-function LoginForm() {
+function LoginForm({ onTestAccounts }: { onTestAccounts: () => void }) {
   const login = useStore((s) => s.login);
   const navigate = useNavigate();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
-
-  const fill = (e: string, p: string) => {
-    setEmail(e);
-    setPassword(p);
-    setError(null);
-  };
 
   const submit = (e: FormEvent) => {
     e.preventDefault();
@@ -63,7 +59,7 @@ function LoginForm() {
 
   return (
     <form className="auth__form" onSubmit={submit} noValidate data-testid="login-form">
-      <Field label="Identifiant / Email" type="email" autoComplete="username" value={email} maxLength={80} onChange={(e) => setEmail(e.target.value)} testId="login-email" />
+      <Field label="Email" type="email" autoComplete="username" value={email} maxLength={80} onChange={(e) => setEmail(e.target.value)} testId="login-email" />
       <Field label="Mot de passe" type="password" autoComplete="current-password" value={password} maxLength={64} onChange={(e) => setPassword(e.target.value)} testId="login-password" />
       {error && (
         <p className="auth__error" role="alert" data-testid="login-error">
@@ -73,51 +69,116 @@ function LoginForm() {
       <button type="submit" className="btn btn--primary btn--block" data-testid="login-submit">
         Se connecter
       </button>
-
-      <details className="demo-accounts" data-testid="demo-accounts">
-        <summary>Comptes de démo (Hackathon)</summary>
-        <div className="demo-accounts__youth" data-testid="demo-youth">
-          <p className="demo-accounts__label">Comptes jeunes</p>
-          <ul>
-            {youthAccounts.map((a) => {
-              const profile = SEED_PROFILES.find((p) => p.id === a.id);
-              return (
-                <li key={a.id}>
-                  <span>
-                    <strong>
-                      {a.displayName}
-                      {profile ? `, ${profile.age} ans` : ''}
-                    </strong>
-                    <small>{DEMO_PERSONAS[a.id]}</small>
-                    <small className="mono">
-                      {a.email} · {a.password}
-                    </small>
-                  </span>
-                  <FillButton id={a.id} onFill={() => fill(a.email, a.password)} />
-                </li>
-              );
-            })}
-          </ul>
-        </div>
-        {proAccount && (
-          <div className="demo-accounts__pro" data-testid="demo-pro">
-            <p className="demo-accounts__badge">
-              <ShieldCheck size={15} aria-hidden="true" /> Psychologue du travail
-            </p>
-            <div className="demo-accounts__pro-row">
-              <span>
-                <strong>{proAccount.displayName}</strong>
-                <small className="mono">
-                  {proAccount.email} · {proAccount.password}
-                </small>
-              </span>
-              <FillButton id={proAccount.id} dark onFill={() => fill(proAccount.email, proAccount.password)} />
-            </div>
-          </div>
-        )}
-        <p className="muted small">Comptes fictifs et publics, pour la démo uniquement.</p>
-      </details>
+      <button type="button" className="btn btn--glass btn--block" onClick={onTestAccounts} data-testid="open-test-accounts">
+        <Users size={17} aria-hidden="true" /> Utiliser un compte de test
+      </button>
     </form>
+  );
+}
+
+/**
+ * Modale « Comptes de test » : jeunes à gauche (carte claire), pro à droite
+ * (carte sombre). Un clic sur une carte connecte directement.
+ */
+function TestAccountsModal({ onClose }: { onClose: () => void }) {
+  const loginAs = useStore((s) => s.loginAs);
+  const navigate = useNavigate();
+  const first = useRef<HTMLButtonElement>(null);
+
+  useEffect(() => {
+    first.current?.focus();
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape') return;
+      e.stopImmediatePropagation();
+      onClose();
+    };
+    window.addEventListener('keydown', onKey, true);
+    return () => window.removeEventListener('keydown', onKey, true);
+  }, [onClose]);
+
+  const connect = (id: string) => {
+    const r = loginAs(id);
+    if (r.ok) navigate(r.role === 'pro' ? '/pro' : '/app');
+  };
+
+  return (
+    <div className="modal modal--top" role="dialog" aria-modal="true" aria-labelledby="test-title" data-testid="test-accounts">
+      <div className="modal__backdrop" onClick={onClose} />
+      <div className="modal__card test-accounts glass">
+        <div className="test-accounts__head">
+          <div>
+            <p className="eyebrow">Démo Hackathon</p>
+            <h2 id="test-title" className="display">
+              Choisis un compte de test
+            </h2>
+          </div>
+          <button type="button" className="icon-btn" onClick={onClose} aria-label="Fermer" data-testid="close-test-accounts">
+            <X size={18} aria-hidden="true" />
+          </button>
+        </div>
+
+        <div className="test-accounts__grid">
+          <section className="test-accounts__youth" data-testid="demo-youth" aria-labelledby="test-youth-title">
+            <p className="test-accounts__label" id="test-youth-title">
+              <Users size={15} aria-hidden="true" /> Profils jeunes
+            </p>
+            <ul>
+              {youthAccounts.map((a, i) => {
+                const profile = SEED_PROFILES.find((p) => p.id === a.id);
+                const Icon = PERSONA_ICONS[a.id] ?? Users;
+                const tags = profile ? topTags(profile, 2).map(([t]) => t) : [];
+                const dominant = profile ? dominantRiasec(profile) : null;
+                return (
+                  <li key={a.id}>
+                    <button
+                      type="button"
+                      ref={i === 0 ? first : undefined}
+                      className="persona"
+                      onClick={() => connect(a.id)}
+                      data-testid={`demo-login-${a.id}`}
+                    >
+                      <span className="persona__icon">
+                        <Icon size={20} aria-hidden="true" />
+                      </span>
+                      <span className="persona__body">
+                        <strong>
+                          {a.displayName}
+                          {profile ? `, ${profile.age} ans` : ''}
+                        </strong>
+                        {dominant && <small className="persona__riasec">{dominant}</small>}
+                        <small className="persona__tags mono">{tags.map((t) => `#${t}`).join('  ')}</small>
+                      </span>
+                      <ArrowRight className="persona__go" size={18} aria-hidden="true" />
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
+          </section>
+
+          {proAccount && (
+            <section className="test-accounts__pro" data-testid="demo-pro" aria-label="Espace professionnel">
+              <p className="test-accounts__badge">
+                <ShieldCheck size={15} aria-hidden="true" /> Psychologue du travail
+              </p>
+              <h3 className="display">{proAccount.displayName}</h3>
+              <p className="mono test-accounts__mail">{proAccount.email}</p>
+              <p className="test-accounts__role">
+                Suit l’orientation des 5 jeunes par tags d’intérêts, ajuste leurs pistes et partage les bilans. Zéro note
+                libre, zéro donnée médicale.
+              </p>
+              <button type="button" className="btn btn--on-dark btn--block" onClick={() => connect(proAccount.id)} data-testid={`demo-login-${proAccount.id}`}>
+                Entrer dans l’espace Pro <ArrowRight size={16} aria-hidden="true" />
+              </button>
+            </section>
+          )}
+        </div>
+        <p className="muted small">
+          Comptes fictifs et publics, pour la démo uniquement (mots de passe : <span className="mono">jeune123</span> et{' '}
+          <span className="mono">pro123</span>).
+        </p>
+      </div>
+    </div>
   );
 }
 
@@ -198,6 +259,7 @@ function RegisterForm() {
 
 export function AuthModal({ initialTab = 'login', onClose }: { initialTab?: AuthTab; onClose?: () => void }) {
   const [tab, setTab] = useState<AuthTab>(initialTab);
+  const [testOpen, setTestOpen] = useState(false);
   const card = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -205,10 +267,10 @@ export function AuthModal({ initialTab = 'login', onClose }: { initialTab?: Auth
   }, [tab]);
 
   useEffect(() => {
-    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onClose?.();
+    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && !testOpen && onClose?.();
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [onClose]);
+  }, [onClose, testOpen]);
 
   return (
     <div className="modal" role="dialog" aria-modal="true" aria-labelledby="auth-title" data-testid="auth-modal">
@@ -225,7 +287,7 @@ export function AuthModal({ initialTab = 'login', onClose }: { initialTab?: Auth
             Créer un compte (Jeune)
           </button>
         </div>
-        {tab === 'login' ? <LoginForm /> : <RegisterForm />}
+        {tab === 'login' ? <LoginForm onTestAccounts={() => setTestOpen(true)} /> : <RegisterForm />}
         {onClose ? (
           <button type="button" className="btn btn--ghost btn--sm" onClick={onClose}>
             Annuler
@@ -236,6 +298,7 @@ export function AuthModal({ initialTab = 'login', onClose }: { initialTab?: Auth
           </Link>
         )}
       </div>
+      {testOpen && <TestAccountsModal onClose={() => setTestOpen(false)} />}
     </div>
   );
 }

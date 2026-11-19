@@ -13,6 +13,7 @@ import '@fontsource-variable/jetbrains-mono';
 import './styles/global.css';
 import './styles/v2.css';
 import './styles/v3.css';
+import './styles/v4.css';
 
 enableCrossTabSync();
 trackBannerHeight();

@@ -39,3 +39,13 @@ export function estimateRiasec(interests: readonly string[]): Record<RiasecKey, 
   }
   return out;
 }
+
+/** Dimensions RIASEC du bilan, de la plus forte à la plus faible. */
+export function rankedRiasec(profile: Pick<YouthProfile, 'riasec'>): RiasecKey[] {
+  return [...RIASEC_KEYS].sort((a, b) => profile.riasec[b] - profile.riasec[a]);
+}
+
+/** Libellé « Dominante / Secondaire » (ex. « Réaliste / Investigateur »). */
+export function dominantRiasec(profile: Pick<YouthProfile, 'riasec'>): string {
+  return rankedRiasec(profile).slice(0, 2).join(' / ');
+}

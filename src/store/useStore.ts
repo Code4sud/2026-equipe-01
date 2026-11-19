@@ -41,6 +41,8 @@ export interface PolariaState extends PersistedState {
   /** Comptes de démo + comptes créés pendant la session (en mémoire seulement). */
   accounts: Account[];
   login: (email: string, password: string) => LoginResult;
+  /** Connexion en 1 clic depuis la modale « Comptes de test » (comptes de démo uniquement). */
+  loginAs: (accountId: string) => LoginResult;
   register: (input: RegistrationInput) => RegisterResult;
   logout: () => void;
   /** Le pro ouvre le feed d'un jeune pour le prévisualiser. */
@@ -133,6 +135,11 @@ export const useStore = create<PolariaState>()(
             ...(account.role === 'jeune' ? { currentYouthId: account.id } : {}),
           });
           return { ok: true, role: account.role };
+        },
+        loginAs: (accountId) => {
+          const seed = SEED_ACCOUNTS.find((a) => a.id === accountId);
+          if (!seed) return { ok: false, error: 'Compte de test inconnu.' };
+          return get().login(seed.email, seed.password);
         },
         register: (input) => {
           const result = validateRegistration(input, get().accounts.map((a) => a.email));
