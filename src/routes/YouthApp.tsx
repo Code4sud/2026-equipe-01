@@ -1,9 +1,9 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Feed } from '../components/Feed';
 import { Bilan } from '../components/Bilan';
 import { DebriefStory } from '../components/DebriefStory';
-import { ProfilePicker } from '../components/ProfilePicker';
+import { AuthModal } from '../components/AuthModal';
 import { StarIcon, TagBars } from '../components/ui';
 import { VIDEOS } from '../data/videos';
 import { buildFeed } from '../engine/recommend';
@@ -41,9 +41,11 @@ export function YouthApp() {
   const profile = useCurrentYouth();
   const [tab, setTab] = useState<Tab>('feed');
   const [story, setStory] = useState(false);
+  const logout = useStore((s) => s.logout);
+  const navigate = useNavigate();
 
-  // Un pro peut prévisualiser le feed ; seul un visiteur non connecté choisit un profil.
-  if (session === null) return <ProfilePicker />;
+  // Un pro peut prévisualiser le feed d'un jeune ; un visiteur doit se connecter.
+  if (session === null) return <AuthModal />;
 
   return (
     <div className="app-shell">
@@ -60,9 +62,25 @@ export function YouthApp() {
               Mon Bilan
             </button>
           </div>
-          <span className="phone__who" title={profile.name}>
-            {profile.name.charAt(0)}
-          </span>
+          {session.role === 'pro' ? (
+            <Link to="/pro" className="phone__who" title="Retour à l’espace Pro" aria-label="Retour à l’espace Pro" data-testid="back-to-pro">
+              ←
+            </Link>
+          ) : (
+            <button
+              type="button"
+              className="phone__who"
+              title={`Se déconnecter (${profile.name})`}
+              aria-label={`Se déconnecter (${profile.name})`}
+              data-testid="logout"
+              onClick={() => {
+                logout();
+                navigate('/');
+              }}
+            >
+              {profile.name.charAt(0)}
+            </button>
+          )}
         </header>
 
         {tab === 'feed' ? (

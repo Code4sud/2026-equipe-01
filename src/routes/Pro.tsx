@@ -5,7 +5,9 @@ import { ALL_TAGS } from '../data/tags';
 import { getVideoById } from '../data/videos';
 import { RIASEC_KEYS, type YouthProfile } from '../domain/types';
 import { topTags } from '../engine/signals';
-import { useStore } from '../store/useStore';
+import { useCurrentAccount, useStore } from '../store/useStore';
+import { AuthModal } from '../components/AuthModal';
+import { DocumentsSection } from '../components/Documents';
 
 const COUNSELOR = 'Dr. Martin';
 const STEP = 5;
@@ -81,7 +83,7 @@ function TagEditor({ profile }: { profile: YouthProfile }) {
 }
 
 function YouthPanel({ profile, onClose }: { profile: YouthProfile; onClose: () => void }) {
-  const loginYouth = useStore((s) => s.loginYouth);
+  const previewYouth = useStore((s) => s.previewYouth);
   const navigate = useNavigate();
   const starred = profile.starredVideoIds.map(getVideoById).filter((v) => v !== undefined);
 
@@ -91,7 +93,7 @@ function YouthPanel({ profile, onClose }: { profile: YouthProfile; onClose: () =
         <div>
           <h2 className="display">{profile.name}</h2>
           <p className="muted small">
-            {profile.age} ans · {profile.rdvRef}
+            {profile.age} ans · {profile.hasBilan ? profile.rdvRef : 'Sans bilan (compte créé sur l’app)'}
           </p>
         </div>
         <button type="button" className="icon-btn" onClick={onClose} aria-label="Fermer">
@@ -100,7 +102,7 @@ function YouthPanel({ profile, onClose }: { profile: YouthProfile; onClose: () =
       </header>
       <RgpdBadge />
       <section>
-        <h3 className="card__title">Radar RIASEC (bilan)</h3>
+        <h3 className="card__title">Radar RIASEC</h3>
         <RadarChart profile={profile} size={240} />
       </section>
       <section>
@@ -110,6 +112,10 @@ function YouthPanel({ profile, onClose }: { profile: YouthProfile; onClose: () =
       <section>
         <h3 className="card__title">Évolution des tags</h3>
         <TagBars scores={topTags(profile)} limit={8} />
+      </section>
+      <section>
+        <h3 className="card__title">Documents · Rapport des Possibles (PDF)</h3>
+        <DocumentsSection profile={profile} />
       </section>
       <section>
         <h3 className="card__title">Dernières vidéos étoilées</h3>
@@ -129,7 +135,7 @@ function YouthPanel({ profile, onClose }: { profile: YouthProfile; onClose: () =
         type="button"
         className="btn btn--glass btn--block"
         onClick={() => {
-          loginYouth(profile.id);
+          previewYouth(profile.id);
           navigate('/app');
         }}
         data-testid="open-youth-app"
@@ -143,27 +149,15 @@ function YouthPanel({ profile, onClose }: { profile: YouthProfile; onClose: () =
 export function Pro() {
   const session = useStore((s) => s.session);
   const profiles = useStore((s) => s.profiles);
-  const { loginPro, resetDemo } = useStore();
+  const resetDemo = useStore((s) => s.resetDemo);
+  const logout = useStore((s) => s.logout);
+  const account = useCurrentAccount();
+  const navigate = useNavigate();
   const [query, setQuery] = useState('');
   const [selected, setSelected] = useState<string | null>(null);
 
-  if (session !== 'pro') {
-    return (
-      <div className="page center">
-        <div className="glass gate">
-          <Logo />
-          <h1 className="display">Espace Pro</h1>
-          <p className="muted">Connexion simulée pour la démo.</p>
-          <button type="button" className="btn btn--primary btn--block" onClick={loginPro} data-testid="pro-login">
-            Se connecter en tant que {COUNSELOR}
-          </button>
-          <Link to="/" className="btn btn--ghost btn--block">
-            ← Retour
-          </Link>
-        </div>
-      </div>
-    );
-  }
+  if (session?.role !== 'pro') return <AuthModal />;
+  const counselor = account?.displayName ?? COUNSELOR;
 
   const q = query.trim().toLocaleLowerCase('fr');
   const list = Object.values(profiles).filter((p) => !q || p.name.toLocaleLowerCase('fr').includes(q));
@@ -188,6 +182,17 @@ export function Pro() {
             </Link>
           </li>
         </ul>
+        <button
+          type="button"
+          className="btn btn--ghost btn--sm"
+          onClick={() => {
+            logout();
+            navigate('/');
+          }}
+          data-testid="pro-logout"
+        >
+          Se déconnecter
+        </button>
         <button type="button" className="btn btn--ghost btn--sm" onClick={resetDemo} data-testid="reset-demo">
           ↺ Réinitialiser la démo
         </button>
@@ -197,7 +202,7 @@ export function Pro() {
         <header className="pro__header">
           <div>
             <p className="eyebrow">Tableau de bord</p>
-            <h1 className="display">Bonjour {COUNSELOR}</h1>
+            <h1 className="display">Bonjour {counselor}</h1>
           </div>
           <label className="search">
             <span className="sr-only">Rechercher un jeune par prénom</span>
@@ -225,6 +230,7 @@ export function Pro() {
                 <th scope="col">
                   <StarIcon size={14} className="accent-star" /> Étoilées
                 </th>
+                <th scope="col">📄 Docs</th>
                 <th scope="col">Dernière activité</th>
                 <th scope="col">
                   <span className="sr-only">Action</span>
@@ -237,6 +243,7 @@ export function Pro() {
                   <td>
                     <strong>{p.name}</strong>
                     <span className="muted"> · {p.age} ans</span>
+                    {!p.hasBilan && <span className="badge-new">Nouveau</span>}
                   </td>
                   <td>
                     {dominant(p)} <span className="muted">({p.riasec[dominant(p)]})</span>
@@ -247,6 +254,7 @@ export function Pro() {
                     ))}
                   </td>
                   <td>{p.starredVideoIds.length}</td>
+                  <td>{p.documents.length}</td>
                   <td className="muted">{lastActivity(p)}</td>
                   <td>
                     <button type="button" className="btn btn--primary btn--sm" onClick={() => setSelected(p.id)} data-testid={`manage-${p.id}`}>
@@ -257,7 +265,7 @@ export function Pro() {
               ))}
               {list.length === 0 && (
                 <tr>
-                  <td colSpan={6} className="muted">
+                  <td colSpan={7} className="muted">
                     Aucun jeune ne correspond.
                   </td>
                 </tr>

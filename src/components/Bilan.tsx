@@ -56,7 +56,7 @@ export function Bilan({ profile }: { profile: YouthProfile }) {
       <div className="bilan__intro glass no-print">
         <h2 className="display">Le bilan de {profile.name}</h2>
         <p className="muted small">
-          {profile.age} ans · {profile.rdvRef} · Espace à partager avec ta famille
+          {profile.age} ans · {profile.hasBilan ? profile.rdvRef : 'pas encore de bilan'} · Espace à partager avec ta famille
         </p>
         <button
           type="button"
@@ -73,6 +73,12 @@ export function Bilan({ profile }: { profile: YouthProfile }) {
       <section className="glass card no-print">
         <h3 className="card__title">Profil d’intérêts (RIASEC)</h3>
         <RadarChart profile={profile} />
+        {!profile.hasBilan && (
+          <p className="muted small">
+            Estimation à partir de tes centres d’intérêt. Ton bilan au Centre des Possibles la remplacera.
+          </p>
+        )}
+        <p className="muted small">Le radar bouge en direct avec tes étoiles et ton temps de visionnage.</p>
       </section>
 
       <section className="glass card no-print">

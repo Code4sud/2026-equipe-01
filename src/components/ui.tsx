@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { RIASEC_KEYS, type YouthProfile } from '../domain/types';
+import { motion } from 'framer-motion';
 import { radarPoints, toPath } from '../lib/radar';
+import { dynamicRiasec } from '../engine/riasec';
 
 export function StarIcon({ size = 24, className }: { size?: number; className?: string }) {
   return (
@@ -26,37 +28,63 @@ export function TagBadge({ tag, tone = 'light' }: { tag: string; tone?: 'light' 
   return <span className={`tag tag--${tone}`}>#{tag}</span>;
 }
 
+/**
+ * Radar RIASEC réactif : polygone pointillé = scores du bilan, polygone plein =
+ * scores « vivants » (bilan + exploration sur PolarIA). Il s'anime dès qu'une
+ * étoile, un regard ou une action du conseiller change les tags.
+ */
 export function RadarChart({ profile, size = 260 }: { profile: YouthProfile; size?: number }) {
   const c = size / 2;
   const r = size / 2 - 56;
-  const values = RIASEC_KEYS.map((k) => profile.riasec[k]);
+  const base = RIASEC_KEYS.map((k) => profile.riasec[k]);
+  const live = dynamicRiasec(profile);
+  const values = RIASEC_KEYS.map((k) => live[k]);
   const rings = [25, 50, 75, 100];
   const axes = radarPoints(RIASEC_KEYS.map(() => 100), r, c);
   const labels = radarPoints(RIASEC_KEYS.map(() => 100), r + 24, c);
+  const livePoints = radarPoints(values, r, c);
+  const spring = { type: 'spring', stiffness: 120, damping: 18 } as const;
   return (
-    <svg
-      viewBox={`0 0 ${size} ${size}`}
-      className="radar"
-      role="img"
-      aria-label={`Profil RIASEC : ${RIASEC_KEYS.map((k) => `${k} ${profile.riasec[k]}`).join(', ')}`}
-      data-testid="radar"
-    >
-      {rings.map((ring) => (
-        <polygon key={ring} points={toPath(radarPoints(RIASEC_KEYS.map(() => ring), r, c))} className="radar__ring" />
-      ))}
-      {axes.map((p, i) => (
-        <line key={i} x1={c} y1={c} x2={p.x} y2={p.y} className="radar__axis" />
-      ))}
-      <polygon points={toPath(radarPoints(values, r, c))} className="radar__shape" />
-      {radarPoints(values, r, c).map((p, i) => (
-        <circle key={i} cx={p.x} cy={p.y} r={3.5} className="radar__dot" />
-      ))}
-      {labels.map((p, i) => (
-        <text key={i} x={p.x} y={p.y} textAnchor="middle" dominantBaseline="middle" className="radar__label">
-          {RIASEC_KEYS[i]}
-        </text>
-      ))}
-    </svg>
+    <figure className="radar-wrap">
+      <svg
+        viewBox={`0 0 ${size} ${size}`}
+        className="radar"
+        role="img"
+        aria-label={`Profil RIASEC actuel : ${RIASEC_KEYS.map((k) => `${k} ${live[k]}`).join(', ')}`}
+        data-testid="radar"
+        data-values={values.join(',')}
+      >
+        {rings.map((ring) => (
+          <polygon key={ring} points={toPath(radarPoints(RIASEC_KEYS.map(() => ring), r, c))} className="radar__ring" />
+        ))}
+        {axes.map((p, i) => (
+          <line key={i} x1={c} y1={c} x2={p.x} y2={p.y} className="radar__axis" />
+        ))}
+        <polygon points={toPath(radarPoints(base, r, c))} className="radar__base" />
+        <motion.polygon
+          initial={false}
+          animate={{ points: toPath(livePoints) }}
+          transition={spring}
+          className="radar__shape"
+        />
+        {livePoints.map((p, i) => (
+          <motion.circle key={i} initial={false} animate={{ cx: p.x, cy: p.y }} transition={spring} r={3.5} className="radar__dot" />
+        ))}
+        {labels.map((p, i) => (
+          <text key={i} x={p.x} y={p.y} textAnchor="middle" dominantBaseline="middle" className="radar__label">
+            {RIASEC_KEYS[i]}
+          </text>
+        ))}
+      </svg>
+      <figcaption className="radar__legend">
+        <span>
+          <i className="legend legend--base" /> {profile.hasBilan ? 'Bilan' : 'Estimation'}
+        </span>
+        <span>
+          <i className="legend legend--live" /> Aujourd’hui sur PolarIA
+        </span>
+      </figcaption>
+    </figure>
   );
 }
 

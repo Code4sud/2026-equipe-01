@@ -8,6 +8,7 @@ import { trackBannerHeight } from './lib/banner';
 import '@fontsource-variable/inter';
 import '@fontsource-variable/outfit';
 import './styles/global.css';
+import './styles/v2.css';
 
 enableCrossTabSync();
 trackBannerHeight();
