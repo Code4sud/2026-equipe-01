@@ -22,10 +22,30 @@ beforeEach(() => {
 });
 
 describe('Landing et authentification', () => {
-  it('affiche la nouvelle accroche et les métriques', () => {
+  it('landing éditoriale : accroches, bandeau défilant, constat et chapitres', () => {
     renderAt('/');
-    expect(screen.getByRole('banner')).toHaveTextContent('PolarIA guide les jeunes vers leur avenir.');
-    for (const m of ['45 sec', '0 %', '100 %']) expect(screen.getByText(m)).toBeInTheDocument();
+    const hero = screen.getByRole('banner');
+    expect(hero).toHaveTextContent('PolarIA guide les jeunes vers leur avenir.');
+    expect(hero).toHaveTextContent('Vous nous avez demandé d’oser. Alors on a osé écouter les jeunes.');
+    // Plus de jargon conformité dans le hero.
+    expect(hero).not.toHaveTextContent(/RGPD|fictives|invention IA/);
+    expect(screen.getByLabelText(/18 PAGES DE PDF/)).toBeInTheDocument();
+    expect(screen.getByText(/Tous les enfants ont du génie/)).toBeInTheDocument();
+    for (const n of ['01', '02', '03']) expect(screen.getByTestId(`chapter-${n}`)).toBeInTheDocument();
+    expect(screen.queryByText(/Une IA qui traduit/)).toBeNull();
+  });
+
+  it('comptes de démo scindés : 5 jeunes et un accès pro séparé', async () => {
+    renderAt('/');
+    await userEvent.click(screen.getByTestId('cta-youth'));
+    await userEvent.click(screen.getByText(/Comptes de démo/));
+    const youth = screen.getByTestId('demo-youth');
+    expect(within(youth).getAllByText('Remplir')).toHaveLength(5);
+    expect(youth).toHaveTextContent('Chloé, 18 ans');
+    expect(youth).toHaveTextContent('Investigateur / Logique');
+    const pro = screen.getByTestId('demo-pro');
+    expect(pro).toHaveTextContent('Psychologue du travail');
+    expect(pro).toHaveTextContent('dr.martin@polaria.fr');
   });
 
   it('l’étoile du mockup s’allume avec un micro-toast', async () => {
@@ -87,7 +107,7 @@ describe('App jeune', () => {
   it('l’étoile met à jour le score et affiche un toast', async () => {
     renderAt('/app');
     await userEvent.click(screen.getByTestId('star-acteur'));
-    expect(screen.getByTestId('toast')).toHaveTextContent('✦ +5 pts #Créatif & Scène');
+    expect(screen.getByTestId('toast')).toHaveTextContent('+5 pts #Créatif & Scène');
     expect(state().profiles.noah!.tagScores['Créatif & Scène']).toBe(17);
   });
 
@@ -131,6 +151,49 @@ describe('App jeune', () => {
   it('une fiche inconnue renvoie au feed', () => {
     renderAt('/app/details/inconnue');
     expect(screen.getByTestId('feed')).toBeInTheDocument();
+  });
+});
+
+describe('Parcours jeune v3 : tout dans le téléphone', () => {
+  beforeEach(() => {
+    state().login('lucas@polaria.fr', 'jeune123');
+  });
+
+  it('la fiche s’ouvre DANS le téléphone, avec le résumé de l’algo en bas sur mobile', () => {
+    renderAt('/app/details/technicien-solaire');
+    const phone = screen.getByTestId('phone');
+    const details = within(phone).getByTestId('details');
+    expect(within(details).getByTestId('why-panel')).toBeInTheDocument();
+    // Le feed reste monté sous la fiche (position conservée au retour).
+    expect(within(phone).getByTestId('feed')).toBeInTheDocument();
+  });
+
+  it('Mon Profil : voir plus, voir moins, explorer un domaine, en direct', async () => {
+    renderAt('/app');
+    await userEvent.click(screen.getByTestId('open-profile'));
+    const screenEl = screen.getByTestId('profile-screen');
+    expect(screenEl).toHaveTextContent('Lucas');
+    expect(screenEl).toHaveTextContent('Réaliste');
+    await userEvent.click(within(screenEl).getByTestId('more-Manuel & Terrain'));
+    expect(within(screenEl).getByTestId('my-score-Manuel & Terrain')).toHaveTextContent('17');
+    await userEvent.click(within(screenEl).getByTestId('less-Logistique'));
+    expect(within(screenEl).getByTestId('my-score-Logistique')).toHaveTextContent('1');
+    await userEvent.click(within(screenEl).getByTestId('explore-Design & Image'));
+    expect(state().profiles.lucas!.tagScores['Design & Image']).toBe(6);
+    expect(within(screenEl).getByTestId('my-score-Design & Image')).toHaveTextContent('6');
+  });
+
+  it('se déconnecter depuis Mon Profil', async () => {
+    renderAt('/app/profil');
+    await userEvent.click(screen.getByTestId('logout'));
+    expect(state().session).toBeNull();
+  });
+
+  it('le feed affiche une carte Découverte en 4e position', () => {
+    renderAt('/app');
+    const reels = screen.getByTestId('feed').querySelectorAll('.reel:not(.reel--end)');
+    expect(reels[3]!.querySelector('[data-testid^="discovery-"]')).not.toBeNull();
+    expect(reels[0]!.querySelector('[data-testid^="discovery-"]')).toBeNull();
   });
 });
 

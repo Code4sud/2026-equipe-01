@@ -76,6 +76,41 @@ describe('RGPD : aucun champ de texte libre', () => {
   });
 });
 
+describe('Direction artistique v3', () => {
+  it('aucun emoji système dans l’interface (100 % lucide-react)', () => {
+    for (const { file, text } of SOURCES) {
+      expect(text, file).not.toMatch(/\p{Extended_Pictographic}/u);
+    }
+  });
+
+  it('le caractère ✦ n’est plus utilisé en décoration', () => {
+    for (const { file, text } of SOURCES) {
+      expect(text, file).not.toContain('✦');
+    }
+  });
+
+  it('l’étoile est réservée au logo et au bouton Étoile', () => {
+    const allowed = new Set([
+      'src/components/ui.tsx', // définition + logo
+      'src/components/Feed.tsx', // bouton Étoile du feed
+      'src/components/DetailsScreen.tsx', // bouton Étoile de la fiche
+      'src/components/WhyPanel.tsx', // bouton Étoile du panneau « Pourquoi »
+      'src/routes/YouthApp.tsx', // logo du téléphone
+      'src/routes/Landing.tsx', // emblème du logo + bouton Étoile du mockup
+    ]);
+    const users = SOURCES.filter(({ file, text }) => file.endsWith('.tsx') && /<StarIcon\b/.test(text)).map((s) =>
+      s.file.replace(/\\/g, '/'),
+    );
+    for (const f of users) expect(allowed.has(f), f).toBe(true);
+  });
+
+  it('chaque fiche utilise une icône Lucide du catalogue', async () => {
+    const { VIDEOS } = await import('../../src/data/videos');
+    const { isVideoIcon } = await import('../../src/components/icons');
+    for (const v of VIDEOS) expect(isVideoIcon(v.icon), v.id).toBe(true);
+  });
+});
+
 describe('XSS et code dangereux', () => {
   it('pas de dangerouslySetInnerHTML, innerHTML, eval ni new Function', () => {
     for (const { file, text } of SOURCES) {

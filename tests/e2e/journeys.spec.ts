@@ -132,6 +132,7 @@ test.describe('Authentification', () => {
     await page.getByTestId('register-submit').click();
     await expect(page.getByTestId('feed')).toBeVisible();
 
+    await page.getByTestId('open-profile').click();
     await page.getByTestId('logout').click();
     await page.getByTestId('cta-pro').click();
     await page.getByTestId('login-email').fill('dr.martin@polaria.fr');
@@ -267,5 +268,72 @@ test.describe('Parcours pro', () => {
     for (let i = 0; i < 3; i++) await pro.getByTestId('inc-Logistique').click();
     await expect(radar).not.toHaveAttribute('data-values', before!);
     await expect(page.getByTestId('bilan').getByTestId('tag-score-Logistique')).toHaveText('19');
+  });
+});
+
+test.describe('Parcours jeune v3', () => {
+  test('desktop : la fiche s’ouvre dans le téléphone et le panneau bascule sur « Pourquoi »', async ({ page }, info) => {
+    test.skip(info.project.name !== 'desktop', 'Panneau latéral : desktop uniquement');
+    await loginYouth(page, 'yanis');
+    const side = page.getByTestId('side-panel');
+    await expect(side.getByTestId('algo-panel')).toBeVisible();
+    const first = await firstReelId(page);
+    await page.getByTestId(`open-${first}`).click();
+    const phone = page.getByTestId('phone');
+    await expect(phone.getByTestId('details')).toBeVisible();
+    await expect(side.getByTestId('why-panel')).toBeVisible();
+    await expect(side.getByTestId('algo-panel')).toHaveCount(0);
+    // La fiche reste dans le cadre du téléphone.
+    const p = (await phone.boundingBox())!;
+    const d = (await phone.getByTestId('details').boundingBox())!;
+    expect(d.width).toBeLessThanOrEqual(p.width + 1);
+    await page.getByTestId('back-to-feed').click();
+    await expect(side.getByTestId('algo-panel')).toBeVisible();
+  });
+
+  test('desktop : « Prochain feed » sur une ligne, badge Découverte, barres sans chevauchement', async ({ page }, info) => {
+    test.skip(info.project.name !== 'desktop', 'Panneau latéral : desktop uniquement');
+    await loginYouth(page, 'lucas');
+    const side = page.getByTestId('side-panel');
+    await expect(side.locator('.badge-discovery').first()).toBeVisible();
+    // Le contenu du panneau ne déborde jamais de son cadre.
+    const sideBox = (await side.boundingBox())!;
+    const algoBox = (await side.getByTestId('algo-panel').boundingBox())!;
+    expect(algoBox.x).toBeGreaterThanOrEqual(sideBox.x);
+    expect(algoBox.x + algoBox.width).toBeLessThanOrEqual(sideBox.x + sideBox.width + 1);
+    for (const el of await side.locator('.next__row, .bars__value, .badge-discovery').all()) {
+      const b = (await el.boundingBox())!;
+      expect(b.x + b.width).toBeLessThanOrEqual(sideBox.x + sideBox.width - 10);
+    }
+    for (const row of await side.locator('.next__row').all()) {
+      const box = (await row.boundingBox())!;
+      expect(box.height).toBeLessThan(34);
+    }
+    for (const row of await side.locator('.bars__row').all()) {
+      const label = (await row.locator('.bars__label').boundingBox())!;
+      const track = (await row.locator('.bars__track').boundingBox())!;
+      expect(track.y).toBeGreaterThanOrEqual(label.y + label.height - 1);
+    }
+  });
+
+  test('Mon Profil : voir plus réoriente la boussole en direct', async ({ page }) => {
+    await loginYouth(page, 'chloe');
+    await page.getByTestId('open-profile').click();
+    const screen = page.getByTestId('profile-screen');
+    await expect(screen).toBeVisible();
+    await screen.getByTestId('more-Logique').click();
+    await expect(screen.getByTestId('my-score-Logique')).toHaveText('14');
+    await screen.getByTestId('explore-Design & Image').click();
+    await expect(screen.getByTestId('my-score-Design & Image')).toHaveText('6');
+    await page.getByTestId('back-from-profile').click();
+    await page.getByTestId('tab-bilan').click();
+    await expect(page.getByTestId('bilan').getByTestId('tag-score-Design & Image')).toHaveText('6');
+  });
+
+  test('landing : bandeau défilant, constat et chapitres 01-03', async ({ page }) => {
+    await page.goto('./');
+    await expect(page.locator('.marquee')).toBeVisible();
+    await expect(page.getByText('Tous les enfants ont du génie', { exact: false })).toBeVisible();
+    for (const n of ['01', '02', '03']) await expect(page.getByTestId(`chapter-${n}`)).toBeVisible();
   });
 });
