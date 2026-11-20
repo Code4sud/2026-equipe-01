@@ -1,7 +1,7 @@
 {
   "nom": "PolarIA",
   "pitch": "PolarIA transforme le bilan d’orientation du Centre des Possibles en un feed de métiers façon Reels pour les jeunes, un bilan rassurant pour les parents et un suivi par tags pour les pros.",
-  "description": "En arrivant au Centre des Possibles, beaucoup de jeunes de 16 à 25 ans n’ont aucune idée de ce vers quoi s’orienter, et le rapport de 18 pages qu’ils reçoivent après leur bilan est vite oublié. PolarIA transforme ces résultats en perspectives d’avenir à partir de leurs intérêts et de leurs aptitudes.\n\nLe jeune fait défiler des fiches métiers façon Reels : chaque étoile et chaque temps de visionnage nourrissent un algorithme transparent par tags (3 fiches d’affinité, 1 fiche Découverte pour sortir de la bulle), il pilote lui-même ses tags dans « Mon Profil », et le bouton « Générer mon avenir » lance une story immersive de 4 scènes, lue à voix haute. Chaque fiche explique pourquoi elle est proposée (pourcentage de match, tags et règles de l’algorithme), et le radar RIASEC évolue en direct avec les choix du jeune. Les parents disposent d’une analyse imprimable (forces, exploration, 3 pistes sur 3 horizons d’études, conseils) et les conseillers réorientent le feed uniquement par tags et rattachent le Rapport des Possibles en PDF, sans aucune note libre (RGPD). Les textes sont écrits par une mini-IA open-weight exécutée dans le navigateur (WebLLM, WebGPU, aucune clé ni serveur), encadrée par des garde-fous qui rejettent tout métier, diplôme ou chiffre absent des données, avec un mode instantané déterministe en repli. Les 41 fiches métiers sont reliées au référentiel O*NET FR du Centre des Possibles (721 métiers, 5 zones de qualification). Données 100 % fictives, application statique testée (unitaires, E2E mobile et desktop) et sécurisée (CSP, recherche de secrets en CI).",
+  "description": "En arrivant au Centre des Possibles, beaucoup de jeunes de 16 à 25 ans ne savent pas vers quoi s’orienter. Après leur bilan, ils repartent avec un rapport de 18 pages plein de graphiques, vite oublié. PolarIA transforme ces résultats en perspectives d’avenir concrètes, dans un format qu’ils utilisent déjà tous les jours : le scroll vertical.\n\nPour le jeune : un feed de fiches métiers façon Reels. Une étoile remplace le like (+5 points sur les tags de la fiche), regarder plus de 3 secondes ajoute 2 points, et après 3 fiches d’affinité vient 1 fiche Découverte pour sortir de sa bulle. Chaque fiche explique « Pourquoi PolarIA te propose ça ? » (pourcentage de match, tags, règles), le jeune règle lui même ses tags dans « Mon Profil », et le bouton « Générer mon avenir » lance une story de 4 scènes lue à voix haute.\n\nPour les parents : l’onglet « Mon Bilan » montre le radar RIASEC qui évolue en direct et génère une analyse imprimable : ses forces, ce que révèle son exploration, 3 pistes sur 3 horizons d’études (court, moyen, long) avec les vraies formations, et des conseils pour la maison.\n\nPour le psychologue du travail : un tableau de bord RGPD où il suit les jeunes uniquement par tags d’orientation, réoriente leur feed en un clic, rattache le Rapport des Possibles en PDF et explore le référentiel O*NET FR du Centre des Possibles (721 métiers, 5 zones de qualification) filtré par durée d’études. Aucune note libre, aucune donnée médicale.\n\nSous le capot : les textes sont écrits par une mini IA open weight qui tourne dans le navigateur (WebLLM et WebGPU, sans serveur ni clé d’API), encadrée par des garde fous qui rejettent tout métier, diplôme ou chiffre absent des données, avec un mode instantané déterministe en repli. Application statique, données 100 % fictives, testée (unitaires, intégration, E2E mobile et desktop) et sécurisée (CSP stricte, recherche de secrets et audit des dépendances en CI).",
   "ecoles": [
     "Epitech",
     "Centrale"
@@ -23,13 +23,10 @@
   "video": "",
   "captures": [
     "captures/accueil.png",
-    "captures/solution.png",
-    "captures/connexion.png",
     "captures/feed.png",
     "captures/story.png",
     "captures/fiche-metier.png",
-    "captures/profil.png",
-    "captures/bilan.png",
+    "captures/bilan-parents.png",
     "captures/pro.png"
   ]
 }
