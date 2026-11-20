@@ -16,6 +16,10 @@ Au Centre des Possibles (Nice Méridia), les 16-25 ans repartent de leur bilan d
 
 Principe central : **une IA qui traduit, jamais une IA qui invente**. Toute la restitution est générée de façon déterministe, uniquement à partir des données du profil et du catalogue de métiers (voir [docs/ALGORITHME.md](docs/ALGORITHME.md)).
 
+## Vidéo de présentation
+
+[captures/presentation.mp4](captures/presentation.mp4) : 1 min 44, sans son, motion design du parcours jeune, parents et pro.
+
 ## L'équipe 01
 
 Adam, Chris, Leila, Lucka, Malone et Nathan.

@@ -193,7 +193,7 @@ describe('secrets et fichiers sensibles', () => {
     ['affectation de secret', /\b(api[_-]?key|secret|password|token)\s*[:=]\s*['"][^'"\s]{12,}['"]/i],
   ];
 
-  const files = trackedFiles().filter((f) => !/package-lock\.json$|\.(png|jpe?g|gif|ico|woff2?)$/.test(f));
+  const files = trackedFiles().filter((f) => !/package-lock\.json$|\.(png|jpe?g|gif|ico|woff2?|mp4|xlsx)$/.test(f));
 
   it.each(SECRET_PATTERNS)('aucun(e) %s dans les fichiers suivis', (_label, pattern) => {
     for (const f of [...files, ...SOURCES.map((s) => s.file)]) {
